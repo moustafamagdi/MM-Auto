@@ -16,9 +16,9 @@ If repairing the source with `pm set-installer` is refused (as on some Samsung b
 
 Every method runs only after the download passes the size, checksum, package ID, signing certificate and version checks above. **Diagnostics** shows the install source Android reports for each MM app and can share the report.
 
-### Repair an installed app (0.2.1)
+### Repair an installed app (0.2.2)
 
-Each installed app has a **Repair install source** button, independent of whether an update is available. Start Shizuku, allow MM Auto, and confirm the repair. This always uses Shizuku, regardless of the selected installation method. It reinstalls the exact installed version with `pm install -r -i com.android.vending`, without uninstalling or clearing app data. The app being repaired will close during replacement.
+Each installed app has a **Repair install source** button, independent of whether an update is available. Repair tries Classic first, regardless of the selected installation method. Allow installs from MM Auto, confirm the Android installer, then return to MM Auto. It checks the recorded source without invoking a privileged channel. If the source is still incorrect, it offers **Use Shizuku**, **Try Classic again**, or Cancel. Shizuku requires a separate explicit confirmation and revalidates a fresh copy of the installed APK before reinstalling the same version with `pm install -r -i com.android.vending`. Neither method uninstalls or clears app data. The app being repaired will close during replacement. Cancelling the installer does not count as a completed repair; pending verification expires after 30 minutes.
 
 Repair copies the installed single APK into private cache, checks its size and SHA-256 copy integrity, verifies the package, exact version code and pinned official signing certificate, and rejects private initial-account assets. Split APK installations are rejected. This local path needs no GitHub download or API quota; existing download checks in `Releases.java` remain unchanged. A different signer or unsupported APK fails closed. Diagnostics reports attribution, not a guarantee of Android Auto compatibility or playback. Root and self-repair remain device-untested for this version.
 
