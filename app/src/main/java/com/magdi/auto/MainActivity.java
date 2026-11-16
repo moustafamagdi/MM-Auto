@@ -57,6 +57,7 @@ public final class MainActivity extends Activity {
         subtitle.setPadding(0, dp(4), 0, dp(20));
         page.addView(subtitle);
 
+        addRow(page, Releases.App.AUTO, R.drawable.ic_auto);
         addRow(page, Releases.App.IPTV, R.drawable.ic_iptv);
         addRow(page, Releases.App.TUBE, R.drawable.ic_tube);
 

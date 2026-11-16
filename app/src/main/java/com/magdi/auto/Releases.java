@@ -32,19 +32,20 @@ final class Releases {
             "github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com");
 
     enum App {
-        IPTV("MM IPTV", "com.magdi.iptv", "MagdiIPTV", "IPTV"),
-        TUBE("MM Tube", "com.magdi.tube", "MagdiTube", "Tube");
+        AUTO("MM Auto", "com.magdi.auto", "MM-Auto", "MM-Auto"),
+        IPTV("MM IPTV", "com.magdi.iptv", "MagdiIPTV", "(?:MM|Magdi)-IPTV"),
+        TUBE("MM Tube", "com.magdi.tube", "MagdiTube", "(?:MM|Magdi)-Tube");
 
         final String title;
         final String packageName;
         final String repo;
         final Pattern assetName;
 
-        App(String title, String packageName, String repo, String kind) {
+        App(String title, String packageName, String repo, String assetPrefix) {
             this.title = title;
             this.packageName = packageName;
             this.repo = repo;
-            assetName = Pattern.compile("(?:MM|Magdi)-" + kind
+            assetName = Pattern.compile(assetPrefix
                     + "-(\\d{1,8}\\.\\d{1,8}\\.\\d{1,8}(?:-audio-icon)?)\\.apk");
         }
     }
@@ -83,10 +84,12 @@ final class Releases {
 
     static Release latest(App app) throws Exception {
         String endpoint = "https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases";
-        String latest = releaseResponse(endpoint + "/latest");
-        if (latest != null) {
-            Release stable = parse(app, new JSONObject(latest));
-            if (stable != null) return stable;
+        if (app != App.AUTO) {
+            String latest = releaseResponse(endpoint + "/latest");
+            if (latest != null) {
+                Release stable = parse(app, new JSONObject(latest));
+                if (stable != null) return stable;
+            }
         }
 
         String history = releaseResponse(endpoint + "?per_page=30");
@@ -94,15 +97,24 @@ final class Releases {
     }
 
     static Release selectRelease(App app, JSONArray releases) throws Exception {
-        Release preview = null;
+        Release selected = null;
         for (int i = 0; i < releases.length(); i++) {
             JSONObject entry = releases.getJSONObject(i);
             Release candidate = parse(app, entry);
             if (candidate == null) continue;
-            if (!candidate.preview) return candidate;
-            if (preview == null) preview = candidate;
+            if (app != App.AUTO && !candidate.preview) return candidate;
+            if (selected == null || (app == App.AUTO && newerRelease(candidate, selected))) {
+                selected = candidate;
+            }
         }
-        return preview;
+        return selected;
+    }
+
+    private static boolean newerRelease(Release candidate, Release current) {
+        if (candidate.versionCode > 0 && current.versionCode > 0) {
+            return candidate.versionCode > current.versionCode;
+        }
+        return compareVersions(candidate.version, current.version) > 0;
     }
 
     private static String releaseResponse(String endpoint) throws IOException {
