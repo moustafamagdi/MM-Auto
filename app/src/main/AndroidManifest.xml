@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <queries>
+        <package android:name="com.magdi.auto"/>
         <package android:name="com.magdi.iptv"/>
         <package android:name="com.magdi.tube"/>
     </queries>
