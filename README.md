@@ -1,6 +1,6 @@
 # MM Auto
 
-Android 11+ companion for MM IPTV and MM Tube. It checks their public GitHub Releases at launch and on demand. Install or update opens Android's installation confirmation after checking download size, the GitHub checksum when available, the package ID, the pinned signing certificate, and the installed version code. The app rejects APKs with a preconfigured IPTV account.
+Android 11+ companion for MM IPTV and MM Tube. It checks their public GitHub Releases at launch and on demand. MM Auto prefers a stable release and falls back to a public pre-release with a compatible APK. Install or update opens Android's installation confirmation after checking download size, the GitHub checksum when available, the package ID, the pinned signing certificate, and the installed version code. The app rejects APKs with a preconfigured IPTV account.
 
 Download the signed APK from [GitHub Releases](https://github.com/moustafamagdi/MM-Auto/releases).
 

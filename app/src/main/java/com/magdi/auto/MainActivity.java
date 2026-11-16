@@ -202,8 +202,8 @@ public final class MainActivity extends Activity {
         String installed = current == null ? "Not installed" : "Installed " + current.versionName;
         String detail = row.error;
         if (detail == null && row.checked) {
-            detail = release == null ? "No supported APK in the latest release"
-                    : available ? "Available " + release.version : "Up to date";
+            detail = release == null ? "No compatible APK in recent GitHub releases"
+                    : available ? "Available " + release.version + (release.preview ? " (preview)" : "") : "Up to date";
         }
         row.status.setText(detail == null ? installed : installed + "\n" + detail);
         row.install.setVisibility(available ? View.VISIBLE : View.GONE);

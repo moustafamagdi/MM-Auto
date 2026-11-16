@@ -55,13 +55,15 @@ final class Releases {
         final URL url;
         final long size;
         final String digest;
+        final boolean preview;
 
-        Release(String version, long versionCode, URL url, long size, String digest) {
+        Release(String version, long versionCode, URL url, long size, String digest, boolean preview) {
             this.version = version;
             this.versionCode = versionCode;
             this.url = url;
             this.size = size;
             this.digest = digest;
+            this.preview = preview;
         }
 
         boolean isNewer(PackageInfo installed) {
@@ -80,8 +82,31 @@ final class Releases {
     }
 
     static Release latest(App app) throws Exception {
-        URL url = new URL("https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases/latest");
-        HttpURLConnection connection = connect(url, "application/vnd.github+json");
+        String endpoint = "https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases";
+        String latest = releaseResponse(endpoint + "/latest");
+        if (latest != null) {
+            Release stable = parse(app, new JSONObject(latest));
+            if (stable != null) return stable;
+        }
+
+        String history = releaseResponse(endpoint + "?per_page=30");
+        return history == null ? null : selectRelease(app, new JSONArray(history));
+    }
+
+    static Release selectRelease(App app, JSONArray releases) throws Exception {
+        Release preview = null;
+        for (int i = 0; i < releases.length(); i++) {
+            JSONObject entry = releases.getJSONObject(i);
+            Release candidate = parse(app, entry);
+            if (candidate == null) continue;
+            if (!candidate.preview) return candidate;
+            if (preview == null) preview = candidate;
+        }
+        return preview;
+    }
+
+    private static String releaseResponse(String endpoint) throws IOException {
+        HttpURLConnection connection = connect(new URL(endpoint), "application/vnd.github+json");
         try {
             int status = connection.getResponseCode();
             if (status == 404) return null;
@@ -89,7 +114,7 @@ final class Releases {
             try (InputStream input = connection.getInputStream();
                  ByteArrayOutputStream body = new ByteArrayOutputStream()) {
                 copy(input, body, 1024 * 1024, null);
-                return parse(app, new JSONObject(new String(body.toByteArray(), StandardCharsets.UTF_8)));
+                return new String(body.toByteArray(), StandardCharsets.UTF_8);
             }
         } finally {
             connection.disconnect();
@@ -97,7 +122,7 @@ final class Releases {
     }
 
     static Release parse(App app, JSONObject release) throws Exception {
-        if (release.optBoolean("draft") || release.optBoolean("prerelease")) return null;
+        if (release.optBoolean("draft")) return null;
         JSONArray assets = release.getJSONArray("assets");
         Release selected = null;
         for (int i = 0; i < assets.length(); i++) {
@@ -118,7 +143,7 @@ final class Releases {
             if (selected != null) throw new IOException("More than one official APK was found.");
             Matcher label = Pattern.compile("^versionCode=(\\d{1,10})$").matcher(asset.optString("label"));
             long versionCode = label.matches() ? Long.parseLong(label.group(1)) : 0;
-            selected = new Release(name.group(1), versionCode, download, size, digest);
+            selected = new Release(name.group(1), versionCode, download, size, digest, release.optBoolean("prerelease"));
         }
         return selected;
     }
