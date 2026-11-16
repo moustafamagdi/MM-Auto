@@ -4,6 +4,10 @@ Android 11+ companion for MM IPTV and MM Tube. It checks for updates to itself, 
 
 Download the signed APK from [GitHub Releases](https://github.com/moustafamagdi/MM-Auto/releases).
 
+## Background update alerts
+
+Turn on **Daily update alerts** and allow notifications to get an alert when an installed app has a newer release. MM Auto checks itself, MM IPTV and MM Tube. It checks roughly once a day with an internet connection and when the battery is not low. Android may delay the check to save power. The job persists across reboots and sends one alert per release for each app. Tapping an alert opens MM Auto to review the update.
+
 ## Build
 
 Use JDK 17, Android SDK API 36 and build tools 36.0.0. Set `ANDROID_HOME` or configure `sdk.dir` in `local.properties`.

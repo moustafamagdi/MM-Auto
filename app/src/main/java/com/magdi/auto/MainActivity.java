@@ -1,5 +1,6 @@
 package com.magdi.auto;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
@@ -8,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
@@ -18,15 +20,20 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Switch;
+import android.widget.Toast;
 
 import java.util.EnumMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
+    private static final int REQUEST_UPDATE_ALERTS = 24;
+    private static final String ASKED_FOR_ALERTS = "asked_for_alerts";
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final EnumMap<Releases.App, Row> rows = new EnumMap<>(Releases.App.class);
     private Button check;
+    private Switch updateAlerts;
     private boolean busy;
 
     private static final class Row {
@@ -66,13 +73,62 @@ public final class MainActivity extends Activity {
         check.setAllCaps(false);
         check.setOnClickListener(view -> checkReleases());
         page.addView(check, new LinearLayout.LayoutParams(-1, dp(52)));
+        updateAlerts = new Switch(this);
+        updateAlerts.setText("Daily update alerts");
+        updateAlerts.setTextColor(Color.WHITE);
+        updateAlerts.setMinHeight(dp(48));
+        updateAlerts.setOnClickListener(view -> changeUpdateAlerts());
+        page.addView(updateAlerts, new LinearLayout.LayoutParams(-1, -2));
+
         setContentView(scroll);
         checkReleases();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        UpdateAlerts.syncSchedule(this);
+        refreshAlertsSwitch();
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (!busy) checkReleases();
+    }
+
+    private void changeUpdateAlerts() {
+        if (!updateAlerts.isChecked() || UpdateAlerts.canNotify(this)) {
+            setUpdateAlerts(updateAlerts.isChecked());
+            return;
+        }
+        refreshAlertsSwitch();
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+                && (!getPreferences(MODE_PRIVATE).getBoolean(ASKED_FOR_ALERTS, false)
+                    || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
+            getPreferences(MODE_PRIVATE).edit().putBoolean(ASKED_FOR_ALERTS, true).apply();
+            requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, REQUEST_UPDATE_ALERTS);
+        } else {
+            startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName()));
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(code, permissions, results);
+        if (code == REQUEST_UPDATE_ALERTS && UpdateAlerts.canNotify(this)) setUpdateAlerts(true);
+    }
+
+    private void setUpdateAlerts(boolean enabled) {
+        if (!UpdateAlerts.setEnabled(this, enabled)) {
+            Toast.makeText(this, "Could not schedule update alerts. Try again.", Toast.LENGTH_SHORT).show();
+        }
+        refreshAlertsSwitch();
+    }
+
+    private void refreshAlertsSwitch() {
+        updateAlerts.setChecked(UpdateAlerts.enabled(this) && UpdateAlerts.canNotify(this));
     }
 
     @Override protected void onDestroy() {

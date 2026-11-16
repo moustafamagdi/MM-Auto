@@ -3,6 +3,7 @@ package com.magdi.auto;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.net.Network;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -83,16 +84,20 @@ final class Releases {
     }
 
     static Release latest(App app) throws Exception {
+        return latest(app, null);
+    }
+
+    static Release latest(App app, Network network) throws Exception {
         String endpoint = "https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases";
         if (app != App.AUTO) {
-            String latest = releaseResponse(endpoint + "/latest");
+            String latest = releaseResponse(endpoint + "/latest", network);
             if (latest != null) {
                 Release stable = parse(app, new JSONObject(latest));
                 if (stable != null) return stable;
             }
         }
 
-        String history = releaseResponse(endpoint + "?per_page=30");
+        String history = releaseResponse(endpoint + "?per_page=30", network);
         return history == null ? null : selectRelease(app, new JSONArray(history));
     }
 
@@ -117,8 +122,8 @@ final class Releases {
         return compareVersions(candidate.version, current.version) > 0;
     }
 
-    private static String releaseResponse(String endpoint) throws IOException {
-        HttpURLConnection connection = connect(new URL(endpoint), "application/vnd.github+json");
+    private static String releaseResponse(String endpoint, Network network) throws IOException {
+        HttpURLConnection connection = connect(new URL(endpoint), "application/vnd.github+json", network);
         try {
             int status = connection.getResponseCode();
             if (status == 404) return null;
@@ -217,7 +222,7 @@ final class Releases {
     private static HttpURLConnection openDownload(URL url) throws IOException {
         for (int redirects = 0; redirects <= 4; redirects++) {
             if (!safeUrl(url, DOWNLOAD_HOSTS)) throw new IOException("Unexpected download host.");
-            HttpURLConnection connection = connect(url, "application/octet-stream");
+            HttpURLConnection connection = connect(url, "application/octet-stream", null);
             try {
                 int status = connection.getResponseCode();
                 if (status == 200) return connection;
@@ -239,8 +244,9 @@ final class Releases {
                 (url.getPort() == -1 || url.getPort() == 443) && hosts.contains(url.getHost());
     }
 
-    private static HttpURLConnection connect(URL url, String accept) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    private static HttpURLConnection connect(URL url, String accept, Network network) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) (network == null
+                ? url.openConnection() : network.openConnection(url));
         connection.setInstanceFollowRedirects(false);
         connection.setConnectTimeout(12_000);
         connection.setReadTimeout(20_000);
