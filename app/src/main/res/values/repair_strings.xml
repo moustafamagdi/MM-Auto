@@ -1,0 +1,8 @@
+<resources>
+    <string name="repair_source">Repair install source</string>
+    <string name="repair_start_shizuku">Start Shizuku, then tap Repair again.</string>
+    <string name="repair_allow_shizuku">Allow MM Auto inside Shizuku, then tap Repair again.</string>
+    <string name="repair_confirm">Reinstall the exact installed version of %1$s through Shizuku with Google Play Store as installer? This keeps app data and needs no GitHub download. The app being repaired will close during installation.</string>
+    <string name="repair_verifying">Verifying the installed APK before repair…</string>
+    <string name="repair_failed">Repair failed. %1$s</string>
+</resources>

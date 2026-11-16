@@ -50,6 +50,7 @@ public final class MainActivity extends Activity {
     private static final class Row {
         TextView status;
         Button install;
+        Button repair;
         Releases.Release release;
         String error;
         String note;
@@ -98,7 +99,7 @@ public final class MainActivity extends Activity {
         ShizukuChannel.listen(granted -> runOnUiThread(() -> {
             if (isDestroyed()) return;
             refreshMethodStatus();
-            if (granted) Toast.makeText(this, "Shizuku allowed. Tap Install again.", Toast.LENGTH_SHORT).show();
+            if (granted) Toast.makeText(this, "Shizuku allowed. Tap Install or Repair again.", Toast.LENGTH_SHORT).show();
         }));
         checkReleases();
     }
@@ -187,10 +188,62 @@ public final class MainActivity extends Activity {
         row.install.setOnClickListener(view -> install(app));
         card.addView(row.install, new LinearLayout.LayoutParams(-1, dp(48)));
 
+        row.repair = new Button(this);
+        row.repair.setText(R.string.repair_source);
+        row.repair.setAllCaps(false);
+        row.repair.setOnClickListener(view -> repair(app));
+        card.addView(row.repair, new LinearLayout.LayoutParams(-1, dp(48)));
+
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, -2);
         cardParams.bottomMargin = dp(12);
         page.addView(card, cardParams);
         render(app);
+    }
+
+    private void repair(Releases.App app) {
+        if (busy || Releases.installed(getPackageManager(), app) == null) return;
+        Row row = rows.get(app);
+        if (!ShizukuChannel.granted()) {
+            if (!ShizukuChannel.running()) row.note = getString(R.string.repair_start_shizuku);
+            else if (ShizukuChannel.blocked()) row.note = getString(R.string.repair_allow_shizuku);
+            else ShizukuChannel.request();
+            render(app);
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.repair_source)
+                .setMessage(getString(R.string.repair_confirm, app.title))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.repair_source, (dialog, which) -> runRepair(app))
+                .show();
+    }
+
+    private void runRepair(Releases.App app) {
+        if (busy) return;
+        Row row = rows.get(app);
+        setBusy(true);
+        row.status.setText(R.string.repair_verifying);
+        worker.execute(() -> {
+            File apk = null;
+            String message;
+            boolean self = app.packageName.equals(getPackageName());
+            try {
+                apk = RepairApk.prepare(this, app);
+                if (self) InstallManager.markPending(this, app.packageName);
+                message = InstallManager.repairVerified(this, apk, app.packageName).message;
+            } catch (Exception failure) {
+                message = getString(R.string.repair_failed, failure.getMessage());
+            } finally {
+                if (apk != null) apk.delete();
+                if (self) InstallManager.clearPending(this, app.packageName);
+            }
+            String result = message;
+            runOnUiThread(() -> {
+                if (isDestroyed()) return;
+                row.note = result;
+                setBusy(false);
+            });
+        });
     }
 
     private void checkReleases() {
@@ -416,6 +469,8 @@ public final class MainActivity extends Activity {
         row.install.setVisibility(available ? View.VISIBLE : View.GONE);
         row.install.setEnabled(available && !busy);
         row.install.setText(current == null ? "Install" : "Update");
+        row.repair.setVisibility(current == null ? View.GONE : View.VISIBLE);
+        row.repair.setEnabled(current != null && !busy);
     }
 
     private LinearLayout column() {
