@@ -275,6 +275,7 @@ public final class MainActivity extends Activity {
                         InstallManager.markPending(this, app.packageName);
                         startActivity(InstallManager.classicIntent(ApkProvider.uri(getPackageName(), app), app.title));
                     } catch (RuntimeException unavailable) {
+                        InstallManager.clearPending(this, app.packageName);
                         row.status.setText("Could not open the Android installer.");
                     }
                 });

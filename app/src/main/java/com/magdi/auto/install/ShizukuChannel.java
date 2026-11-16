@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 
 import java.io.File;
@@ -112,6 +113,9 @@ public final class ShizukuChannel {
 
     /** Must be called from a background thread: it waits for the Shizuku service to start. */
     private static <T> T withService(Context context, Work<T> work) throws Exception {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            throw new IllegalStateException("Shizuku work must run on a background thread.");
+        }
         CountDownLatch connected = new CountDownLatch(1);
         AtomicReference<IShellService> holder = new AtomicReference<>();
         ServiceConnection connection = new ServiceConnection() {

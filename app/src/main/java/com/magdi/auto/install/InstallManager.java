@@ -134,6 +134,10 @@ public final class InstallManager {
         prefs(context).edit().putString(PENDING + packageName, before + "|" + System.currentTimeMillis()).apply();
     }
 
+    public static void clearPending(Context context, String packageName) {
+        prefs(context).edit().remove(PENDING + packageName).apply();
+    }
+
     /** True once, when a package marked pending has been installed or updated since it was marked. */
     public static boolean takeFinishedPending(Context context, String packageName) {
         SharedPreferences prefs = prefs(context);
@@ -144,7 +148,8 @@ public final class InstallManager {
             long before = Long.parseLong(parts[0]);
             long started = Long.parseLong(parts[1]);
             boolean expired = System.currentTimeMillis() - started > PENDING_TTL_MS;
-            boolean changed = lastUpdate(context.getPackageManager(), packageName) != before;
+            long after = lastUpdate(context.getPackageManager(), packageName);
+            boolean changed = after != 0 && after != before;
             if (changed || expired) prefs.edit().remove(PENDING + packageName).apply();
             return changed && !expired;
         } catch (RuntimeException invalid) {
