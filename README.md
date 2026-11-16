@@ -12,6 +12,8 @@ MM Auto installs MM IPTV, MM Tube and itself the same way, aiming for **Installe
 2. **Shizuku**: installs silently through a Shizuku shell service (Shizuku, Shizuku-Next and compatible builds). Start Shizuku, choose this method and allow MM Auto when asked.
 3. **Root**: installs silently through `su`. Needed on devices that block a non-root shell from setting the Play Store as installer, such as many Xiaomi, POCO and Redmi phones.
 
+If repairing the source with `pm set-installer` is refused (as on some Samsung builds), MM Auto reinstalls the already verified APK silently with the Play Store as installer, only when Shizuku or Root is available and the saved APK has the same package, version and signing certificate as the installed app.
+
 Every method runs only after the download passes the size, checksum, package ID, signing certificate and version checks above. **Diagnostics** shows the install source Android reports for each MM app and can share the report.
 
 ## Background update alerts

@@ -4,12 +4,16 @@ import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.net.Uri;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * One install path for every MM app: Classic (Android installer), Shizuku, or Root, each aiming for
@@ -104,6 +108,18 @@ public final class InstallManager {
         String problem = setInstaller(context, mode, packageName);
         identity = InstallIdentity.read(pm, packageName);
         if (identity.viaPlayStore()) return new Outcome(true, prefix + "Install source fixed to Google Play Store.");
+
+        // Some devices refuse "pm set-installer" for the shell but accept "pm install -i". Reinstall the
+        // APK that MM Auto already verified, silently, with the Play Store as installer.
+        if (mode == InstallMode.ROOT || ShizukuChannel.granted()) {
+            status.update("Reinstalling with the Play Store as installer…");
+            String reinstall = reinstall(context, mode, packageName);
+            identity = InstallIdentity.read(pm, packageName);
+            if (identity.viaPlayStore()) {
+                return new Outcome(true, prefix + "Install source fixed to Google Play Store by reinstalling.");
+            }
+            if (reinstall != null) problem = reinstall;
+        }
         String shown = identity.installing == null ? "unknown" : identity.installing;
         return fail(prefix + "Install source is " + shown + ". "
                 + (problem == null ? "Android Auto may not list this app." : problem));
@@ -125,6 +141,47 @@ public final class InstallManager {
         } catch (Exception failure) {
             return failure.getMessage() == null ? "Could not repair the install source." : failure.getMessage();
         }
+    }
+
+    /**
+     * Reinstalls the cached APK over the same installed version. It only runs when the cached file is the
+     * same package, version and signing certificate as what is installed, so it cannot change the app.
+     * Returns null on success, otherwise a short reason.
+     */
+    private static String reinstall(Context context, InstallMode mode, String packageName) {
+        File apk = new File(new File(context.getCacheDir(), "releases"), packageName + ".apk");
+        if (!apk.isFile()) return "The downloaded APK is no longer available. Update again to repair the source.";
+        PackageManager pm = context.getPackageManager();
+        try {
+            PackageInfo archive = pm.getPackageArchiveInfo(apk.getAbsolutePath(),
+                    PackageManager.GET_SIGNING_CERTIFICATES);
+            PackageInfo current = pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES);
+            if (archive == null || !packageName.equals(archive.packageName)
+                    || archive.getLongVersionCode() != current.getLongVersionCode()
+                    || !sameSigners(archive, current)) {
+                return "The saved APK does not match the installed app, so it was not reinstalled.";
+            }
+            ShellRunner.Output out;
+            if (mode == InstallMode.ROOT) {
+                try (InputStream input = new FileInputStream(apk)) {
+                    out = ShellRunner.run(PackageTool.asRoot(
+                            PackageTool.installCommand(apk.length(), InstallIdentity.PLAY_STORE)), input, 180);
+                }
+            } else {
+                out = ShizukuChannel.install(context, apk);
+            }
+            return out.installed() ? null : explain(out.text);
+        } catch (Exception failure) {
+            return failure.getMessage() == null ? "Could not reinstall the app." : failure.getMessage();
+        }
+    }
+
+    private static boolean sameSigners(PackageInfo first, PackageInfo second) {
+        if (first.signingInfo == null || second.signingInfo == null) return false;
+        Signature[] a = first.signingInfo.getApkContentsSigners();
+        Signature[] b = second.signingInfo.getApkContentsSigners();
+        return a != null && b != null && a.length > 0
+                && new HashSet<>(Arrays.asList(a)).equals(new HashSet<>(Arrays.asList(b)));
     }
 
     // --- Classic installs finish in Android's UI, so the check happens when MM Auto is shown again. ---
