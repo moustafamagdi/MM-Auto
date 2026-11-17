@@ -26,6 +26,7 @@ import android.widget.Switch;
 import android.widget.Toast;
 
 import com.magdi.auto.install.InstallDiagnostics;
+import com.magdi.auto.install.InstallIdentity;
 import com.magdi.auto.install.InstallManager;
 import com.magdi.auto.install.InstallMode;
 import com.magdi.auto.install.ShizukuChannel;
@@ -50,6 +51,7 @@ public final class MainActivity extends Activity {
     private static final class Row {
         TextView status;
         Button install;
+        Button repair;
         Releases.Release release;
         String error;
         String note;
@@ -98,7 +100,7 @@ public final class MainActivity extends Activity {
         ShizukuChannel.listen(granted -> runOnUiThread(() -> {
             if (isDestroyed()) return;
             refreshMethodStatus();
-            if (granted) Toast.makeText(this, "Shizuku allowed. Tap Install again.", Toast.LENGTH_SHORT).show();
+            if (granted) Toast.makeText(this, "Shizuku allowed. Tap Install or Repair again.", Toast.LENGTH_SHORT).show();
         }));
         checkReleases();
     }
@@ -109,6 +111,7 @@ public final class MainActivity extends Activity {
         refreshAlertsSwitch();
         refreshMethodStatus();
         checkPendingInstalls();
+        checkRepairPending();
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
     }
 
@@ -187,10 +190,148 @@ public final class MainActivity extends Activity {
         row.install.setOnClickListener(view -> install(app));
         card.addView(row.install, new LinearLayout.LayoutParams(-1, dp(48)));
 
+        row.repair = new Button(this);
+        row.repair.setText(R.string.repair_source);
+        row.repair.setAllCaps(false);
+        row.repair.setOnClickListener(view -> repair(app));
+        card.addView(row.repair, new LinearLayout.LayoutParams(-1, dp(48)));
+
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, -2);
         cardParams.bottomMargin = dp(12);
         page.addView(card, cardParams);
         render(app);
+    }
+
+    private void repair(Releases.App app) {
+        if (busy || Releases.installed(getPackageManager(), app) == null) return;
+        if (RepairState.needsShizuku(this, app.packageName)) {
+            offerShizukuRepair(app);
+            return;
+        }
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            rows.get(app).note = getString(R.string.repair_unknown_apps);
+            render(app);
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (RuntimeException unavailable) {
+                rows.get(app).note = getString(R.string.repair_failed, unavailable.getMessage());
+                render(app);
+            }
+            return;
+        }
+        new AlertDialog.Builder(this).setTitle(R.string.repair_source)
+                .setMessage(getString(R.string.repair_classic_confirm, app.title))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.repair_source, (dialog, which) -> runClassicRepair(app)).show();
+    }
+
+    private void runClassicRepair(Releases.App app) {
+        if (busy) return;
+        setBusy(true);
+        rows.get(app).status.setText(R.string.repair_verifying);
+        worker.execute(() -> {
+            File verified = null;
+            try {
+                verified = RepairApk.prepare(this, app);
+                File directory = new File(getCacheDir(), "repairs");
+                if (!directory.isDirectory() && !directory.mkdirs()) throw new java.io.IOException("Repair storage unavailable.");
+                File target = new File(directory, app.packageName + ".apk");
+                if (!verified.renameTo(target)) throw new java.io.IOException("Could not save verified repair APK.");
+                runOnUiThread(() -> {
+                    if (isDestroyed()) { target.delete(); return; }
+                    setBusy(false);
+                    try {
+                        RepairState.mark(this, app.packageName);
+                        startActivity(InstallManager.classicIntent(ApkProvider.repairUri(getPackageName(), app), app.title));
+                    } catch (Exception failure) {
+                        RepairState.clear(this, app.packageName);
+                        target.delete();
+                        rows.get(app).note = getString(R.string.repair_failed, failure.getMessage());
+                        render(app);
+                    }
+                });
+            } catch (Exception failure) {
+                runOnUiThread(() -> {
+                    if (isDestroyed()) return;
+                    rows.get(app).note = getString(R.string.repair_failed, failure.getMessage());
+                    setBusy(false);
+                });
+            } finally {
+                if (verified != null) verified.delete();
+            }
+        });
+    }
+
+    private void checkRepairPending() {
+        for (Releases.App app : Releases.App.values()) {
+            if (!RepairState.takeFinished(this, app.packageName)) continue;
+            new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk").delete();
+            boolean ready = InstallIdentity.read(getPackageManager(), app.packageName).viaPlayStore();
+            RepairState.needsShizuku(this, app.packageName, !ready);
+            rows.get(app).note = getString(ready ? R.string.repair_classic_success : R.string.repair_shizuku_needed);
+            render(app);
+            if (!ready) offerShizukuRepair(app);
+        }
+    }
+
+    private void offerShizukuRepair(Releases.App app) {
+        new AlertDialog.Builder(this).setTitle(R.string.repair_source)
+                .setMessage(R.string.repair_shizuku_needed)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setNeutralButton(R.string.repair_retry_classic, (dialog, which) -> {
+                    RepairState.needsShizuku(this, app.packageName, false);
+                    repair(app);
+                })
+                .setPositiveButton(R.string.repair_use_shizuku, (dialog, which) -> requestShizukuRepair(app)).show();
+    }
+
+    private void requestShizukuRepair(Releases.App app) {
+        if (busy) return;
+        Row row = rows.get(app);
+        if (!ShizukuChannel.granted()) {
+            if (!ShizukuChannel.running()) row.note = getString(R.string.repair_start_shizuku);
+            else if (ShizukuChannel.blocked()) row.note = getString(R.string.repair_allow_shizuku);
+            else ShizukuChannel.request();
+            render(app);
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.repair_source)
+                .setMessage(getString(R.string.repair_confirm, app.title))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.repair_source, (dialog, which) -> runRepair(app))
+                .show();
+    }
+
+    private void runRepair(Releases.App app) {
+        if (busy) return;
+        Row row = rows.get(app);
+        setBusy(true);
+        row.status.setText(R.string.repair_verifying);
+        worker.execute(() -> {
+            File apk = null;
+            String message;
+            boolean self = app.packageName.equals(getPackageName());
+            try {
+                apk = RepairApk.prepare(this, app);
+                if (self) InstallManager.markPending(this, app.packageName);
+                InstallManager.Outcome outcome = InstallManager.repairVerified(this, apk, app.packageName);
+                message = outcome.message;
+                if (outcome.ok) RepairState.needsShizuku(this, app.packageName, false);
+            } catch (Exception failure) {
+                message = getString(R.string.repair_failed, failure.getMessage());
+            } finally {
+                if (apk != null) apk.delete();
+                if (self) InstallManager.clearPending(this, app.packageName);
+            }
+            String result = message;
+            runOnUiThread(() -> {
+                if (isDestroyed()) return;
+                row.note = result;
+                setBusy(false);
+            });
+        });
     }
 
     private void checkReleases() {
@@ -302,6 +443,7 @@ public final class MainActivity extends Activity {
             worker.execute(() -> {
                 InstallManager.Outcome outcome = InstallManager.verifyAndFix(
                         this, mode, app.packageName, message -> { }, "");
+                if (outcome.ok) RepairState.needsShizuku(this, app.packageName, false);
                 runOnUiThread(() -> {
                     if (isDestroyed()) return;
                     row.note = outcome.message;
@@ -416,6 +558,8 @@ public final class MainActivity extends Activity {
         row.install.setVisibility(available ? View.VISIBLE : View.GONE);
         row.install.setEnabled(available && !busy);
         row.install.setText(current == null ? "Install" : "Update");
+        row.repair.setVisibility(current == null ? View.GONE : View.VISIBLE);
+        row.repair.setEnabled(current != null && !busy);
     }
 
     private LinearLayout column() {

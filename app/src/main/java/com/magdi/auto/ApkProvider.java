@@ -21,6 +21,11 @@ public final class ApkProvider extends ContentProvider {
 
     @Override public boolean onCreate() { return true; }
 
+    static Uri repairUri(String packageName, Releases.App app) {
+        return new Uri.Builder().scheme("content").authority(packageName + ".downloads")
+                .appendPath("repair").appendPath(app.packageName + ".apk").build();
+    }
+
     @Override public String getType(Uri uri) {
         return apk(uri) == null ? null : MIME_TYPE;
     }
@@ -48,11 +53,13 @@ public final class ApkProvider extends ContentProvider {
     }
 
     private File apk(Uri uri) {
-        if (uri.getPathSegments().size() != 1) return null;
+        boolean repair = uri.getPathSegments().size() == 2
+                && "repair".equals(uri.getPathSegments().get(0));
+        if (!repair && uri.getPathSegments().size() != 1) return null;
         String filename = uri.getLastPathSegment();
         for (Releases.App app : Releases.App.values()) {
             if ((app.packageName + ".apk").equals(filename)) {
-                return new File(new File(getContext().getCacheDir(), "releases"), filename);
+                return new File(new File(getContext().getCacheDir(), repair ? "repairs" : "releases"), filename);
             }
         }
         return null;

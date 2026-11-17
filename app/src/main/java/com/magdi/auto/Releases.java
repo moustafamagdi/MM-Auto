@@ -47,7 +47,7 @@ final class Releases {
             this.packageName = packageName;
             this.repo = repo;
             assetName = Pattern.compile(assetPrefix
-                    + "-(\\d{1,8}\\.\\d{1,8}\\.\\d{1,8}(?:-audio-icon)?)\\.apk");
+                    + "-(\\d{1,8}\\.\\d{1,8}\\.\\d{1,8}(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?)\\.apk");
         }
     }
 

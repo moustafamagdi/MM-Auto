@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+  <title id="title">MM Auto: your starting point for MM IPTV and MM Tube</title>
+  <desc id="desc">MM Auto is the installation and maintenance hub for MM IPTV and MM Tube, with experimental Android Auto support. Illustration, not an app screenshot.</desc>
+  <rect width="1200" height="440" rx="24" fill="#0b1324"/>
+  <circle cx="1110" cy="50" r="230" fill="#122640"/>
+  <rect x="48" y="46" width="108" height="108" rx="24" fill="#152748"/>
+  <g transform="translate(48 46)">
+    <path fill="#fff" fill-rule="evenodd" d="M25 65l6-16q2-5 7-5h32q5 0 7 5l6 16v15h-7v-6H32v6h-7zM34 62h40l-4-12H38zM32 66v4h9v-4zM67 66v4h9v-4z"/>
+    <path fill="#9fd4ff" d="M50 20h8v12h8L54 43 42 32h8z"/>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif">
+    <text x="184" y="94" fill="#fff" font-size="44" font-weight="700">MM Auto</text>
+    <text x="186" y="132" fill="#b9c9e2" font-size="22">Your starting point for MM apps on Android Auto.</text>
+    <rect x="49" y="203" width="342" height="162" rx="16" fill="#172742"/>
+    <rect x="429" y="203" width="342" height="162" rx="16" fill="#172742"/>
+    <rect x="809" y="203" width="342" height="162" rx="16" fill="#172742"/>
+    <text x="73" y="242" fill="#87e1c0" font-size="15" font-weight="700">START HERE</text>
+    <text x="73" y="283" fill="#fff" font-size="25" font-weight="600">MM Auto</text>
+    <text x="73" y="319" fill="#b9c9e2" font-size="18">Install · Update · Repair</text>
+    <text x="453" y="242" fill="#87e1c0" font-size="15" font-weight="700">YOUR IPTV</text>
+    <text x="453" y="283" fill="#fff" font-size="25" font-weight="600">MM IPTV</text>
+    <text x="453" y="319" fill="#b9c9e2" font-size="18">Your subscription. Your playlists.</text>
+    <text x="833" y="242" fill="#87e1c0" font-size="15" font-weight="700">YOUR VIDEO</text>
+    <text x="833" y="283" fill="#fff" font-size="25" font-weight="600">MM Tube</text>
+    <text x="833" y="319" fill="#b9c9e2" font-size="18">YouTube on your Android phone</text>
+    <text x="50" y="409" fill="#94a9c7" font-size="17">Android 11+  /  Pure Java  /  Experimental  /  Android Auto companion</text>
+  </g>
+</svg>

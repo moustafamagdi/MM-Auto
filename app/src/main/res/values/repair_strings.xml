@@ -1,0 +1,14 @@
+<resources>
+    <string name="repair_source">Repair install source</string>
+    <string name="repair_start_shizuku">Start Shizuku, then tap Repair again.</string>
+    <string name="repair_allow_shizuku">Allow MM Auto inside Shizuku, then tap Repair again.</string>
+    <string name="repair_confirm">Reinstall the exact installed version of %1$s through Shizuku with Google Play Store as installer? This keeps app data and needs no GitHub download. The app being repaired will close during installation.</string>
+    <string name="repair_verifying">Verifying the installed APK before repair…</string>
+    <string name="repair_failed">Repair failed. %1$s</string>
+    <string name="repair_unknown_apps">Allow installs from MM Auto, then tap Repair again.</string>
+    <string name="repair_classic_confirm">Reinstall the exact installed version of %1$s using Android’s installer? App data is kept. After installation, return to MM Auto to check the source. Shizuku is only offered if the source is still incorrect.</string>
+    <string name="repair_classic_success">Install source repaired through Classic: Google Play Store.</string>
+    <string name="repair_shizuku_needed">Classic finished, but the installer is still not Google Play Store. Use Shizuku to reinstall the same version without clearing data?</string>
+    <string name="repair_retry_classic">Try Classic again</string>
+    <string name="repair_use_shizuku">Use Shizuku</string>
+</resources>

@@ -93,10 +93,22 @@ public final class InstallManager {
         }
     }
 
-    /**
-     * Checks who Android says installed the package and, if it is not the Play Store, repairs it when a
-     * privileged channel is available. Blocks, so call it from a background thread.
-     */
+    /** Reinstalls a freshly verified same-version APK via Shizuku. Call from a background thread. */
+    public static Outcome repairVerified(Context context, File apk, String packageName) {
+        try {
+            if (!ShizukuChannel.granted()) return fail("Start Shizuku and allow MM Auto, then try repair again.");
+            ShellRunner.Output out = ShizukuChannel.install(context, apk);
+            if (!out.installed()) return fail(explain(out.text));
+            InstallIdentity identity = InstallIdentity.read(context.getPackageManager(), packageName);
+            return identity.viaPlayStore()
+                    ? new Outcome(true, "Install source repaired. Same version reinstalled without clearing data.")
+                    : fail("Reinstalled, but Android did not record Google Play Store as installer.");
+        } catch (Exception failure) {
+            return fail("Repair failed. " + failure.getMessage());
+        }
+    }
+
+    /** Checks and repairs attribution when possible. Call from a background thread. */
     public static Outcome verifyAndFix(Context context, InstallMode mode, String packageName,
                                        Status status, String prefix) {
         PackageManager pm = context.getPackageManager();

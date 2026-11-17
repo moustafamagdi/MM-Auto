@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/moustafamagdi/MM-Auto/blob/main/docs/TROUBLESHOOTING.md
+    about: Check common update, installer and Shizuku issues first.
