@@ -1,0 +1,46 @@
+name: Bug report
+description: Report an installation, discovery or repair problem.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Read the troubleshooting guide first. Never post credentials, playlists, account files or signing keys."
+  - type: input
+    id: version
+    attributes:
+      label: MM Auto version
+      placeholder: "0.2.3 (8)"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device, Android version and ROM/build
+    validations:
+      required: true
+  - type: dropdown
+    id: operation
+    attributes:
+      label: Affected operation
+      options:
+        - Update discovery
+        - Classic installation
+        - Shizuku installation
+        - Root installation
+        - Repair install source
+        - Diagnostics or Android Auto visibility
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps, expected result and actual result
+      description: Include target app/version and exact error. For Shizuku, include version and adb/root mode.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted Diagnostics or screenshots
+      description: Review device information before posting. Do not include private data.
