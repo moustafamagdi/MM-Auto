@@ -1,21 +1,32 @@
 # MM Auto
 
-**Install, update and repair install-source attribution for the MM Android Auto companion apps.**
+**Your starting point for MM IPTV and MM Tube on Android Auto.**
 
 [![Release](https://img.shields.io/github/v/release/moustafamagdi/MM-Auto?include_prereleases&label=release)](https://github.com/moustafamagdi/MM-Auto/releases)
 ![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84)
 ![Java](https://img.shields.io/badge/language-Java-ED8B00)
 ![Experimental](https://img.shields.io/badge/status-experimental-F5B942)
 
-![MM Auto project overview: discover official releases, verify APKs, install and inspect the source.](docs/images/overview.svg)
+![MM Auto is the starting point for MM IPTV and MM Tube: install, update and repair from one companion app.](docs/images/overview.svg)
 
-The official source and release repository for **MM Auto**, maintained by [moustafamagdi](https://github.com/moustafamagdi). Manage **MM Auto, MM IPTV and MM Tube** on Android 11 and later using Android's installer, Shizuku or an optional root installation path.
+Welcome to the official **MM apps hub**, maintained by [moustafamagdi](https://github.com/moustafamagdi). Start here to discover **MM IPTV** and **MM Tube**, find their official downloads, and set them up for your Android Auto environment. **MM Auto** is the companion app that installs, updates and repairs their install-source attribution on Android 11 and later.
 
 **[Download signed APKs](https://github.com/moustafamagdi/MM-Auto/releases) · [Getting started](#getting-started) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Report a problem](https://github.com/moustafamagdi/MM-Auto/issues/new/choose)**
 
+## Explore the apps
+
+| | **MM IPTV** | **MM Tube** |
+| --- | --- | --- |
+| On your phone | IPTV player for your own Xtream subscription or M3U playlist, with favorites and playback history. | YouTube viewing through Android WebView, with search, fullscreen and optional sign-in. |
+| Android Auto | Experimental projection and a separate audio-control entry for content selected in the app. | Experimental projection and a separate audio-control entry for existing playback. |
+| Get the app | **[Download MM IPTV](https://github.com/moustafamagdi/MagdiIPTV/releases)** | **[Download MM Tube](https://github.com/moustafamagdi/MagdiTube/releases)** |
+| Learn more | [Source, setup and support](https://github.com/moustafamagdi/MagdiIPTV) | [Source, setup and support](https://github.com/moustafamagdi/MagdiTube) |
+
+**Start with [MM Auto](https://github.com/moustafamagdi/MM-Auto/releases)** to manage both apps together. You can also visit each app's repository above for its own setup instructions and troubleshooting. MM Auto is the installation and maintenance hub; content browsing and playback happen in the individual apps.
+
 > **Experimental software.** Install-source attribution is one part of Android Auto compatibility. A “ready” result in Diagnostics does not guarantee visibility or playback. This independent project is not affiliated with Google, Android Auto or Shizuku.
 
-## What it does
+## What MM Auto handles for you
 
 - **Discover updates** from the official GitHub repositories, including compatible preview filenames.
 - **Verify APKs** before installation: package, pinned signing certificate, size, checksum when supplied by GitHub, and version code. Reject private initial-account assets.
