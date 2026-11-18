@@ -4,3 +4,5 @@ local.properties
 *.jks
 *.p12
 *.keystore
+dist/
+*.apk

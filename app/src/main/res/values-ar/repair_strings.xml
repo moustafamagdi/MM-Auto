@@ -1,0 +1,14 @@
+<resources>
+    <string name="repair_source">إصلاح مصدر التثبيت</string>
+    <string name="repair_start_shizuku">شغّل Shizuku، ثم اضغط إصلاح مرة أخرى.</string>
+    <string name="repair_allow_shizuku">اسمح لـ MM Auto داخل Shizuku، ثم اضغط إصلاح مرة أخرى.</string>
+    <string name="repair_confirm">إعادة تثبيت نفس الإصدار المثبّت من %1$s عبر Shizuku مع تسجيل Google Play Store كمصدر للتثبيت؟ سيتم الاحتفاظ ببيانات التطبيق، ولا يلزم التحميل من GitHub. سيُغلق التطبيق أثناء إعادة تثبيته.</string>
+    <string name="repair_verifying">جارٍ التحقق من ملف APK المثبّت قبل الإصلاح…</string>
+    <string name="repair_failed">تعذّر الإصلاح. %1$s</string>
+    <string name="repair_unknown_apps">اسمح بالتثبيت من MM Auto، ثم اضغط إصلاح مرة أخرى.</string>
+    <string name="repair_classic_confirm">إعادة تثبيت نفس الإصدار المثبّت من %1$s باستخدام مثبّت أندرويد؟ سيتم الاحتفاظ بالبيانات. ارجع إلى MM Auto بعد التثبيت لفحص المصدر. سيُعرض Shizuku فقط إذا ظل المصدر غير صحيح.</string>
+    <string name="repair_classic_success">تم إصلاح مصدر التثبيت عبر Classic إلى Google Play Store.</string>
+    <string name="repair_shizuku_needed">اكتمل Classic، لكن مصدر التثبيت ما زال غير Google Play Store. هل تريد استخدام Shizuku لإعادة تثبيت نفس الإصدار مع الاحتفاظ بالبيانات؟</string>
+    <string name="repair_retry_classic">تجربة Classic مرة أخرى</string>
+    <string name="repair_use_shizuku">استخدام Shizuku</string>
+</resources>
