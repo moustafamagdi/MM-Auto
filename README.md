@@ -30,7 +30,9 @@ Welcome to the official **MM apps hub**, maintained by [moustafamagdi](https://g
 
 - **Discover updates** from the official GitHub repositories, including compatible preview filenames.
 - **Verify APKs** before installation: package, pinned signing certificate, size, checksum when supplied by GitHub, and version code. Reject private initial-account assets.
-- **Choose Classic, Shizuku or Root** for installation.
+- **Use a simpler home screen** with Install, Update or Open, Arabic/English, RTL and light/dark appearance.
+- **Import an APK manually** from an app’s overflow menu when GitHub checks are unavailable. The same package, signer and version verifier is used.
+- **Choose Classic, Shizuku or Root** in Settings → Advanced settings; the existing choice is preserved.
 - **Repair existing installations** by reinstalling the exact installed version without uninstalling or clearing app data. The repair operation uses a verified local copy, without a GitHub download.
 - **Inspect Diagnostics** for versions, installer attribution and Shizuku availability.
 - **Enable daily update alerts** for scheduled background checks when Android allows them.
@@ -49,9 +51,11 @@ MM Auto is designed for these apps, not arbitrary APKs. It does not supply IPTV 
 
 1. Open [Releases](https://github.com/moustafamagdi/MM-Auto/releases) and download `MM-Auto-<version>.apk`. Current releases are experimental/prereleases. The source ZIP is not an installable app.
 2. Install on Android 11 or later. To update an official MM Auto installation, install over it rather than uninstalling it.
-3. Open MM Auto, tap **Check for updates**, and choose your installation method.
+3. Open MM Auto and tap **Check for updates**. Existing installation settings remain selected; optional method choices are under **Settings → Advanced settings** in the 0.2.4 source.
 4. Tap **Install** or **Update** and follow the permission prompts. After Classic installation, return to MM Auto.
-5. Open **Diagnostics** to inspect attribution, then test the target app in your Android Auto setup while parked.
+5. Use **⋮ → Help with a problem** for repair and Diagnostics, then test the target app in your Android Auto setup while parked.
+
+The 0.2.4 UI refresh is in the source; an installable update still requires signing with the original release key. See [UI changes and validation](docs/UI-REFRESH.md). For manual downloads, open **⋮ → Releases page**, download an APK from Assets, then return to **⋮ → Choose APK**.
 
 For MM Auto itself, discovery considers compatible previews. For IPTV and Tube, a compatible stable release takes priority. **Update** appears only when the selected release is newer than the installed version.
 
@@ -69,7 +73,7 @@ Normal installation flows can attempt source repair afterward. When `pm set-inst
 
 For an already installed MM app, you do not need to delete it or wait for a newer version:
 
-1. Tap **Repair install source** on its card.
+1. In the 0.2.4 interface, open **⋮ → Help with a problem → Repair installation** on its card (older versions show **Repair install source** directly).
 2. Allow installs from MM Auto if prompted, and complete the **Classic** installer.
 3. Return to MM Auto. If Android reports Google Play Store as installer, repair finishes without Shizuku.
 4. Otherwise, choose **Use Shizuku**, **Try Classic again**, or **Cancel**. Shizuku requires permission and separate confirmation; this repair flow does not invoke it automatically.
@@ -89,7 +93,7 @@ Repair verifies the installed APK's package, exact version code and pinned signe
 | Self-update/self-repair and settings preservation | Not fully verified. |
 | Android Auto video playback | Not verified. |
 
-The current source has **23 passing unit tests** covering shell I/O/timeouts, repair validation, pending repair state and APK filename matching. Unit tests do not replace device testing.
+The current source has **27 passing unit tests** covering shell I/O/timeouts, repair validation, pending repair state APK filename matching, and manual-import bounds/cancellation cleanup. Unit tests do not replace device testing.
 
 ## Security and privacy
 

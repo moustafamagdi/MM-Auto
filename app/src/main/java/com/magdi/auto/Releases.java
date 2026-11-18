@@ -191,7 +191,7 @@ final class Releases {
         }
     }
 
-    private static void validate(App app, Release release, File file, PackageManager pm) throws Exception {
+    static void validate(App app, Release release, File file, PackageManager pm) throws Exception {
         PackageInfo archive = pm.getPackageArchiveInfo(file.getAbsolutePath(), PackageManager.GET_SIGNING_CERTIFICATES);
         if (archive == null || !app.packageName.equals(archive.packageName) || !officialSigner(archive)) {
             throw new IOException("APK package or signing certificate is incorrect.");

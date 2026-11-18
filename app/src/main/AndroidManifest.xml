@@ -10,7 +10,7 @@
         <package android:name="com.magdi.tube"/>
     </queries>
     <application android:label="MM Auto" android:icon="@drawable/ic_auto"
-        android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false"
+        android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true"
         android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
