@@ -147,6 +147,10 @@ public final class MainActivity extends Activity {
         Button share = action(getString(R.string.share_app), false);
         share.setOnClickListener(v -> shareApp());
         page.addView(share, new LinearLayout.LayoutParams(-1, dp(52)));
+        Button contact = action(getString(R.string.contact_developer), false);
+        contact.setOnClickListener(v -> safeStart(new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://wa.me/966597197475"))));
+        page.addView(contact, new LinearLayout.LayoutParams(-1, dp(52)));
         setContentView(scroll);
         if (savedState != null) {
             String selected = savedState.getString("picking_app");
