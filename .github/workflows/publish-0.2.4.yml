@@ -1,0 +1,74 @@
+name: Publish signed MM Auto 0.2.4
+on:
+  push:
+    branches: [publish-mm-auto-0.2.4]
+    paths:
+      - .github/workflows/publish-0.2.4.yml
+      - .release-upload/MM-Auto-0.2.4.apk
+permissions:
+  contents: read
+concurrency:
+  group: publish-mm-auto-0.2.4
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_COMMIT: 4183b58382693173d859a841deee296793c7fd17
+    steps:
+      - name: Verify and publish the existing signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/contents/.release-upload/MM-Auto-0.2.4.apk?ref=$GITHUB_SHA" --jq .content | base64 --decode > MM-Auto-0.2.4.apk
+          echo "a509ace54427d75fa2042a518f796db334f8d23d86d194917cd7303fb8f1dd16  MM-Auto-0.2.4.apk" | sha256sum --check
+          if gh release view v0.2.4 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release v0.2.4 already exists; refusing to overwrite it."
+            exit 1
+          fi
+          cat > release-notes.md <<'NOTES'
+          Simplified MM Auto interface with Arabic/English and light/dark appearance.
+          
+          - Home focuses on MM IPTV and MM Tube with Install, Update or Open actions.
+          - MM Auto self-updates appear in a compact card.
+          - App menus include release pages, manual APK import and troubleshooting.
+          - Settings contains notifications, appearance, language and existing advanced installation options.
+          - APK preparation includes progress and cancellation.
+          - Manual APK permission flows can resume after permission prompts and activity recreation.
+          
+          The existing installer, repair, verification and notification engines are preserved. All 13 core files are byte-identical to the previous main.
+          
+          Validation: release build, lint and all 27 unit tests passed. The APK was aligned and signed with the original certificate, matching the 0.2.3 reference.
+          
+          Package: com.magdi.auto
+          Version: 0.2.4 (versionCode=9)
+          Certificate SHA-256: 6d9d30d8f427a6cfc0241831d1e324e684fe2aefda72925c89ef872bf3a5ab65
+          APK SHA-256: a509ace54427d75fa2042a518f796db334f8d23d86d194917cd7303fb8f1dd16
+          Source: ui-simplification, commit 4183b58382693173d859a841deee296793c7fd17 (PR #3, not merged into main).
+          
+          Physical-device UI, installation, self-update, Root/Shizuku execution and Android Auto playback remain unverified for this build. GitHub API rate limits still apply.
+          
+          Install over the existing official version without uninstalling. From MM Auto 0.2.3, tap Check for updates and review the offered MM Auto update.
+          NOTES
+          gh release create v0.2.4 --repo "$GH_REPO" --draft --prerelease --target "$SOURCE_COMMIT" --title "MM Auto 0.2.4 — Simplified UI Preview" --notes-file release-notes.md
+          gh release upload v0.2.4 --repo "$GH_REPO" "MM-Auto-0.2.4.apk#versionCode=9"
+          gh api "repos/$GH_REPO/releases/tags/v0.2.4" > draft-release.json
+          python3 - <<'PY'
+          import json
+          r = json.load(open('draft-release.json'))
+          assert r['draft'] and r['prerelease']
+          assert r['target_commitish'] == '4183b58382693173d859a841deee296793c7fd17'
+          a, = r['assets']
+          assert a['name'] == 'MM-Auto-0.2.4.apk'
+          assert a['label'] == 'versionCode=9'
+          assert a['size'] == 193327 and a['state'] == 'uploaded'
+          assert a['digest'] == 'sha256:a509ace54427d75fa2042a518f796db334f8d23d86d194917cd7303fb8f1dd16'
+          PY
+          gh release edit v0.2.4 --repo "$GH_REPO" --draft=false --prerelease
+          gh api "repos/$GH_REPO/git/ref/tags/v0.2.4" --jq .object.sha | grep -Fx "$SOURCE_COMMIT"
+          gh release view v0.2.4 --repo "$GH_REPO" --json url,isDraft,isPrerelease,assets
