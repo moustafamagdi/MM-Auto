@@ -8,6 +8,7 @@
 - Settings contains daily notifications, appearance, language and help. Existing Classic, Shizuku and Root choices remain in Advanced settings, with the saved selection preserved.
 - Arabic/RTL, English, device language, device appearance and explicit light/dark choices are supported.
 - APK preparation shows progress, verification and cancellation state. Cancellation suppresses installation and deletes the prepared file. The existing network transfer can finish before cleanup; the UI explains this. Cancellation is unavailable after installation begins.
+- Outcome troubleshooting is attached to each card. Manual imports remain available to retry after permission prompts, including activity recreation; granting permission restores the install confirmation.
 - HTTP 403/429 and other check failures have a manual-download route. This presentation does not change GitHub retry, rate-limit, caching or release-selection behavior.
 
 ## Core behavior preserved
@@ -24,6 +25,6 @@ The normal Gradle `assembleRelease`, `testReleaseUnitTest` and `lintRelease` che
 
 The SDK fallback build includes the existing Shizuku provider permission and metadata from its library manifest. Do not omit AAR manifest merging in alternative build tools.
 
-A distributable update must be signed with the original MM key. No replacement signing key has been committed or distributed. `scripts/Sign-Release.ps1` aligns an unsigned build, asks for the keystore password locally, signs it, checks the pinned certificate, and writes a SHA-256 file. The unsigned build is not installable.
+A distributable update must be signed with the original MM key. The original key was recovered from the owner's private backup and its certificate matched the signed 0.2.3 reference. No signing material is included in this branch. `scripts/Sign-Release.ps1` aligns an unsigned build, asks for the keystore password locally, signs it, checks the pinned certificate, and writes a SHA-256 file. The unsigned build is not installable.
 
 Physical phone installation, notifications, Root/Shizuku execution, self-update and Android Auto playback still require device verification. UI changes do not certify Android Auto compatibility.

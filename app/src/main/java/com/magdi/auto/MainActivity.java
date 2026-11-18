@@ -64,6 +64,7 @@ public final class MainActivity extends Activity {
     private int preparationGeneration;
     private static final int PICK_APK = 42;
     private Button settingsButton;
+    private AlertDialog localConfirmation;
 
     @Override protected void attachBaseContext(Context base) {
         android.content.SharedPreferences prefs = base.getSharedPreferences("ui", MODE_PRIVATE);
@@ -151,9 +152,12 @@ public final class MainActivity extends Activity {
         ShizukuChannel.listen(granted -> runOnUiThread(() -> {
             if (isDestroyed()) return;
             refreshMethodStatus();
-            if (granted) Toast.makeText(this, R.string.permission_ready, Toast.LENGTH_SHORT).show();
+            if (granted) {
+                Toast.makeText(this, R.string.permission_ready, Toast.LENGTH_SHORT).show();
+                resumePendingLocal();
+            }
         }));
-        if (pickingApp == null) checkReleases();
+        if (pickingApp == null && pendingLocalApp() == null) checkReleases();
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -169,13 +173,7 @@ public final class MainActivity extends Activity {
         checkPendingInstalls();
         checkRepairPending();
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
-        String local = getSharedPreferences("ui", MODE_PRIVATE).getString("pending_local", null);
-        if (!busy && local != null) {
-            getSharedPreferences("ui", MODE_PRIVATE).edit().remove("pending_local").apply();
-            Releases.App app = Releases.App.valueOf(local);
-            File verified = new File(new File(getCacheDir(), "releases"), app.packageName + ".apk");
-            if (verified.isFile() && getPackageManager().canRequestPackageInstalls()) installLocal(app, verified);
-        }
+        resumePendingLocal();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -281,6 +279,7 @@ public final class MainActivity extends Activity {
         row.repair = action(getString(R.string.troubleshoot), false);
         row.repair.setOnClickListener(v -> showHelp(app));
         row.repair.setVisibility(View.GONE);
+        card.addView(row.repair, new LinearLayout.LayoutParams(-1, dp(48)));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
         params.bottomMargin = dp(16);
         page.addView(card, params);
@@ -289,6 +288,10 @@ public final class MainActivity extends Activity {
 
     private void primaryAction(Releases.App app) {
         if (busy) return;
+        if (pendingLocalApp() == app) {
+            installLocal(app, localApk(app));
+            return;
+        }
         Row row = rows.get(app);
         PackageInfo current = Releases.installed(getPackageManager(), app);
         if (row.release != null && row.release.isNewer(current)) { install(app); return; }
@@ -523,7 +526,10 @@ public final class MainActivity extends Activity {
                 });
             }
             runOnUiThread(() -> {
-                if (!isDestroyed()) setBusy(false);
+                if (!isDestroyed()) {
+                    setBusy(false);
+                    resumePendingLocal();
+                }
             });
         });
     }
@@ -749,7 +755,9 @@ public final class MainActivity extends Activity {
         row.status.setTextColor(row.error == null ? mutedColor : primaryColor);
         row.install.setEnabled(!busy);
         row.more.setEnabled(!busy);
-        row.install.setText(current == null ? (available ? R.string.install : R.string.download)
+        boolean pendingLocal = pendingLocalApp() == app;
+        row.install.setText(pendingLocal ? R.string.ready_install
+                : current == null ? (available ? R.string.install : R.string.download)
                 : available ? R.string.update : R.string.open);
         row.manual.setVisibility(row.error == null || (current == null && !available) ? View.GONE : View.VISIBLE);
         row.manual.setEnabled(!busy);
@@ -759,9 +767,9 @@ public final class MainActivity extends Activity {
         row.repair.setVisibility(row.note == null || busy ? View.GONE : View.VISIBLE);
         row.repair.setEnabled(!busy);
         if (app == Releases.App.AUTO) {
-            row.card.setVisibility(available || row.error != null || row.operation != null
+            row.card.setVisibility(available || row.error != null || row.operation != null || row.note != null || pendingLocal
                     ? View.VISIBLE : View.GONE);
-            if (!available) row.install.setVisibility(View.GONE);
+            if (!available && !pendingLocal) row.install.setVisibility(View.GONE);
             else row.install.setVisibility(View.VISIBLE);
         }
     }
@@ -921,10 +929,7 @@ public final class MainActivity extends Activity {
                     if (cancelPreparation) { verified.delete(); finishCancelled(app); return; }
                     setBusy(false);
                     rows.get(app).status.setText(R.string.ready_install);
-                    new AlertDialog.Builder(this).setTitle(app.title).setMessage(R.string.ready_install)
-                            .setPositiveButton(R.string.install, (d, w) -> installLocal(app, verified))
-                            .setNegativeButton(R.string.cancel, (d, w) -> verified.delete())
-                            .setOnCancelListener(d -> verified.delete()).show();
+                    showLocalConfirmation(app, verified);
                 });
             } catch (Exception error) {
                 if (apk != null) apk.delete();
@@ -941,6 +946,7 @@ public final class MainActivity extends Activity {
 
     private void installLocal(Releases.App app, File verified) {
         if (busy) return;
+        getSharedPreferences("ui", MODE_PRIVATE).edit().remove("pending_local").apply();
         InstallMode mode = InstallManager.mode(this);
         if (mode == InstallMode.CLASSIC && !getPackageManager().canRequestPackageInstalls()) {
             // Keep the verified file and allow the user to retry without selecting it again.
@@ -953,6 +959,7 @@ public final class MainActivity extends Activity {
             return;
         }
         if (mode == InstallMode.SHIZUKU && !ShizukuChannel.granted()) {
+            getSharedPreferences("ui", MODE_PRIVATE).edit().putString("pending_local", app.name()).apply();
             rows.get(app).note = getString(!ShizukuChannel.running() ? R.string.repair_start_shizuku : R.string.repair_allow_shizuku);
             if (ShizukuChannel.running() && !ShizukuChannel.blocked()) ShizukuChannel.request();
             render(app);
@@ -983,6 +990,52 @@ public final class MainActivity extends Activity {
                 if (!outcome.ok) showHelp(app);
             });
         });
+    }
+
+    private File localApk(Releases.App app) {
+        return new File(new File(getCacheDir(), "releases"), app.packageName + ".apk");
+    }
+
+    private Releases.App pendingLocalApp() {
+        String name = getSharedPreferences("ui", MODE_PRIVATE).getString("pending_local", null);
+        if (name == null) return null;
+        try {
+            Releases.App app = Releases.App.valueOf(name);
+            if (localApk(app).isFile()) return app;
+        } catch (IllegalArgumentException invalid) {
+            // Discard stale UI state; imported files still use the existing verifier.
+        }
+        getSharedPreferences("ui", MODE_PRIVATE).edit().remove("pending_local").apply();
+        return null;
+    }
+
+    private void resumePendingLocal() {
+        if (busy || isDestroyed() || (localConfirmation != null && localConfirmation.isShowing())) return;
+        Releases.App app = pendingLocalApp();
+        if (app == null) return;
+        InstallMode mode = InstallManager.mode(this);
+        boolean ready = mode == InstallMode.CLASSIC ? getPackageManager().canRequestPackageInstalls()
+                : mode != InstallMode.SHIZUKU || ShizukuChannel.granted();
+        rows.get(app).note = getString(ready ? R.string.ready_install
+                : mode == InstallMode.CLASSIC ? R.string.allow_install_description : R.string.repair_allow_shizuku);
+        render(app);
+        if (ready) showLocalConfirmation(app, localApk(app));
+    }
+
+    private void showLocalConfirmation(Releases.App app, File verified) {
+        if (localConfirmation != null && localConfirmation.isShowing()) return;
+        Runnable discard = () -> {
+            getSharedPreferences("ui", MODE_PRIVATE).edit().remove("pending_local").apply();
+            verified.delete();
+            rows.get(app).note = null;
+            render(app);
+        };
+        localConfirmation = new AlertDialog.Builder(this).setTitle(app.title).setMessage(R.string.ready_install)
+                .setPositiveButton(R.string.install, (d, w) -> installLocal(app, verified))
+                .setNegativeButton(R.string.cancel, (d, w) -> discard.run())
+                .setOnCancelListener(d -> discard.run()).create();
+        localConfirmation.setOnDismissListener(d -> localConfirmation = null);
+        localConfirmation.show();
     }
 
     private LinearLayout column() {
