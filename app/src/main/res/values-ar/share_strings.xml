@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_app">مشاركة التطبيق</string>
+    <string name="share_app_unavailable">لا يوجد تطبيق متاح لمشاركة الرسالة.</string>
+</resources>

@@ -144,6 +144,9 @@ public final class MainActivity extends Activity {
         check = action(getString(R.string.check_updates), false);
         check.setOnClickListener(v -> { if (!busy) checkReleases(); });
         page.addView(check, new LinearLayout.LayoutParams(-1, dp(52)));
+        Button share = action(getString(R.string.share_app), false);
+        share.setOnClickListener(v -> shareApp());
+        page.addView(share, new LinearLayout.LayoutParams(-1, dp(52)));
         setContentView(scroll);
         if (savedState != null) {
             String selected = savedState.getString("picking_app");
@@ -701,6 +704,18 @@ public final class MainActivity extends Activity {
             methodStatus.setText("Installs silently with the Play Store as installer. " + shizuku);
         } else {
             methodStatus.setText("Installs silently with su. Android or your root manager may ask you to allow it.");
+        }
+    }
+
+    private void shareApp() {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_SUBJECT, "MM Auto");
+        send.putExtra(Intent.EXTRA_TEXT, getString(R.string.share_app_message));
+        try {
+            startActivity(Intent.createChooser(send, getString(R.string.share_app)));
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.share_app_unavailable, Toast.LENGTH_SHORT).show();
         }
     }
 
