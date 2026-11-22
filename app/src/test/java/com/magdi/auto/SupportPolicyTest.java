@@ -1,0 +1,10 @@
+package com.magdi.auto;
+import org.junit.*;import static org.junit.Assert.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.json.*;import android.content.*;import android.net.Uri;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35,application=android.app.Application.class)
+public class SupportPolicyTest {
+ @Test public void acceptsOnlyExplicitInstallAndDownloadStates(){for(String s:new String[]{"auto download tube ready classic","auto install iptv pending shizuku","auto install auto failed root","auto install-check tube mismatch classic","auto permission auto unavailable shizuku"})assertNotNull(SupportPolicy.event(s,1));}
+ @Test public void dropsRawPathsMessagesAndUnrelatedPackages(){for(String s:new String[]{"/sdcard/private/MyAccount.apk","https://private/password","auto download unrelated ready classic","auto install tube failed shizuku password=SECRET","SecurityException: secret","auto install tube failed arbitrary"})assertNull(SupportPolicy.event(s,1));}
+ @Test public void snapshotContainsOnlyThreeMMAppsAndFixedPermissionFlags(){java.util.List<JSONObject> events=SupportEvents.contextEvents(RuntimeEnvironment.getApplication());assertEquals(4,events.size());for(JSONObject e:events){assertTrue(e.optString("target").matches("auto|iptv|tube"));assertFalse(e.toString().contains("com.magdi"));assertFalse(e.has("originating"));assertFalse(e.has("url"));}}
+ @Test public void unknownInstallerNameNotSent(){assertEquals("other",SupportEvents.source("com.personal.secret"));assertEquals("shell",SupportEvents.source("com.android.shell"));}
+ @Test public void reportProviderCannotReadArbitraryFiles() throws Exception {SupportProvider p=Robolectric.buildContentProvider(SupportProvider.class).create().get();Context c=p.getContext();assertNull(p.getType(Uri.parse("content://"+c.getPackageName()+".support/../shared_prefs/mm_support_v1.xml")));try{p.openFile(SupportProvider.uri(c),"w");fail();}catch(java.io.FileNotFoundException expected){} }
+}

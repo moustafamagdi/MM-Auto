@@ -1,6 +1,7 @@
 package com.magdi.auto.install;
 
 import android.content.ClipData;
+import com.magdi.auto.SupportEvents;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -69,7 +70,8 @@ public final class InstallManager {
 
     /** King-style Shizuku path: shell opens the real system installer; the user confirms installation. */
     public static Outcome openShizuku(Context context, Uri apk, String packageName, boolean repair) {
-        if (!ShizukuChannel.granted()) return fail("Start Shizuku and allow MM Auto, then try again.");
+        SupportEvents.event("install",packageName,"started","SHIZUKU");
+        if (!ShizukuChannel.granted()) {SupportEvents.event("permission",packageName,"unavailable","SHIZUKU");return fail("Start Shizuku and allow MM Auto, then try again.");}
         return openSystemInstaller(context, apk, packageName, repair, ShizukuChannel::openInstaller);
     }
 
@@ -85,6 +87,7 @@ public final class InstallManager {
             markPending(context, packageName, apk, repair);
             ShellRunner.Output out = launcher.open(context, target.intent);
             if (!out.activityStarted()) {
+                SupportEvents.event("install",packageName,"failed","SHIZUKU");
                 clearPending(context, packageName);
                 return fail("Could not open the system installer through Shizuku. " + explain(out.text));
             }
@@ -93,8 +96,10 @@ public final class InstallManager {
             prefs(context).edit().putString("last_" + packageName,
                     "Shizuku UserService -> " + target.intent.getComponent().flattenToShortString()
                     + "; awaiting package change").apply();
+            SupportEvents.event("install",packageName,"pending","SHIZUKU");
             return new Outcome(false, true, message);
         } catch (Exception failure) {
+            SupportEvents.event("install",packageName,"failed","SHIZUKU");
             clearPending(context, packageName);
             // Also revoke if a failure occurred before markPending could save the URI.
             try { context.revokeUriPermission(apk, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
@@ -106,14 +111,15 @@ public final class InstallManager {
     /** The legacy silent route is now Root-only. Shizuku can never fall back to pm install. */
     public static Outcome installPrivileged(Context context, InstallMode mode, File apk,
                                             String packageName, Status status) {
+        SupportEvents.event("install",packageName,"started",mode.name());
         if (mode != InstallMode.ROOT) return fail("Use the Android installer for Classic or Shizuku.");
         try (InputStream input = new FileInputStream(apk)) {
             status.update("Installing as root…");
             ShellRunner.Output out = ShellRunner.run(PackageTool.asRoot(
                     PackageTool.installCommand(apk.length(), InstallIdentity.PLAY_STORE)), input, 180);
-            if (!out.installed()) return fail(explain(out.text));
+            if (!out.installed()) {SupportEvents.event("install",packageName,"failed",mode.name());return fail(explain(out.text));}
             return verifyAndFix(context, mode, packageName, status, "Installed. ");
-        } catch (Exception failure) { return fail("Install failed. " + detail(failure)); }
+        } catch (Exception failure) { SupportEvents.event("install",packageName,"failed",mode.name());return fail("Install failed. " + detail(failure)); }
     }
 
     /** Read-only for Classic/Shizuku. Root retains its explicit privileged repair behavior. */
@@ -143,6 +149,7 @@ public final class InstallManager {
 
     private static Outcome checked(Context context, String packageName, InstallIdentity identity, String prefix) {
         boolean match = identity.matchesExpectedPair(context.getPackageManager());
+        SupportEvents.event("install-check",packageName,match?"match":"mismatch",mode(context).name());
         String message = prefix + "Install metadata: " + (match ? "MATCH" : "MISMATCH") + ".\n"
                 + identity.describe() + "\nAndroid Auto visibility/playback: NOT_TESTED.";
         prefs(context).edit().putString("last_" + packageName, message).apply();
@@ -176,6 +183,7 @@ public final class InstallManager {
     }
 
     public static void markPending(Context context, String packageName, Uri uri, boolean repair) {
+        SupportEvents.event(repair?"repair":"install",packageName,"pending",mode(context).name());
         long before = lastUpdate(context.getPackageManager(), packageName);
         SharedPreferences.Editor edit = prefs(context).edit()
                 .putString(PENDING + packageName, before + "|" + System.currentTimeMillis())
@@ -208,7 +216,7 @@ public final class InstallManager {
             result = pendingStatus(before, lastUpdate(context.getPackageManager(), packageName),
                     System.currentTimeMillis() - started);
         } catch (RuntimeException invalid) { result = PendingStatus.EXPIRED; }
-        if (result == PendingStatus.FINISHED || result == PendingStatus.EXPIRED) clearPending(context, packageName);
+        if (result == PendingStatus.FINISHED || result == PendingStatus.EXPIRED) {SupportEvents.event("install",packageName,result==PendingStatus.FINISHED?"finished":"expired",mode(context).name());clearPending(context, packageName);}
         return new PendingResult(result, repair);
     }
 

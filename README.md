@@ -129,3 +129,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [the release checklist](docs/RELEASIN
 No project license has been selected yet. Public visibility alone is not an open-source license; contact the maintainer before reusing or redistributing project code. Dependencies retain their own licenses.
 
 MM Auto uses the [Shizuku API](https://github.com/RikkaApps/Shizuku-API). The overview illustration is an original repository asset based on MM Auto's icon, not an app screenshot.
+
+## Support reports (0.2.8 preview)
+
+Settings now includes Support & diagnostics, an installation Support ID, consent-based sending and deletion. See [privacy, delivery and owner workflow](docs/SUPPORT.md). The existing detailed installation report remains manual-only under Advanced.
+

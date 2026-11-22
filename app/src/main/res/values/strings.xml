@@ -33,7 +33,7 @@
     <string name="advanced">Advanced settings</string>
     <string name="install_method">Installation method</string>
     <string name="classic">Classic (default)</string>
-    <string name="diagnostics">Diagnostics</string>
+    <string name="diagnostics">Support &amp; diagnostics</string>
     <string name="share">Share</string>
     <string name="close">Close</string>
     <string name="repair_action">Repair installation</string>

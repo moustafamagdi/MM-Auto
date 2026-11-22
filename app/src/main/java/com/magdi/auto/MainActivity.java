@@ -426,6 +426,7 @@ public final class MainActivity extends Activity {
                     }
                 });
             } catch (Exception failure) {
+                SupportEvents.event("repair",app.packageName,"failed",InstallManager.mode(this).name());
                 runOnUiThread(() -> {
                     if (isDestroyed()) return;
                     rows.get(app).note = getString(R.string.repair_failed, failure.getMessage());
@@ -546,8 +547,11 @@ public final class MainActivity extends Activity {
                 Releases.Release release = null;
                 String error = null;
                 try {
+                    SupportEvents.event("release-check",app.packageName,"started","unknown");
                     release = Releases.latest(app);
+                    SupportEvents.event("release-check",app.packageName,release==null?"unavailable":"ready","unknown");
                 } catch (Exception failure) {
+                    SupportEvents.event("release-check",app.packageName,"failed","unknown");
                     String reason = failure.getMessage();
                     error = getString(reason != null && (reason.contains("HTTP 403") || reason.contains("HTTP 429"))
                             ? R.string.github_limited : R.string.github_unavailable);
@@ -600,13 +604,16 @@ public final class MainActivity extends Activity {
         worker.execute(() -> {
             File apk;
             try {
+                SupportEvents.event("download",app.packageName,"started",mode.name());
                 apk = Releases.download(app, release, getCacheDir(), getPackageManager());
+                SupportEvents.event("download",app.packageName,"ready",mode.name());
                 if (cancelPreparation || isDestroyed()) {
                     apk.delete();
                     runOnUiThread(() -> finishCancelled(app));
                     return;
                 }
             } catch (Exception failure) {
+                SupportEvents.event("download",app.packageName,"failed",mode.name());
                 runOnUiThread(() -> {
                     if (isDestroyed()) return;
                     setBusy(false);
@@ -775,21 +782,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showDiagnostics() {
-        Map<String, String> apps = new LinkedHashMap<>();
-        for (Releases.App app : Releases.App.values()) apps.put(app.title, app.packageName);
-        String report = InstallDiagnostics.report(this, apps);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.diagnostics)
-                .setMessage(report)
-                .setPositiveButton(R.string.share, (dialog, which) -> {
-                    Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_TEXT, report);
-                    startActivity(Intent.createChooser(send, getString(R.string.diagnostics)));
-                })
-                .setNegativeButton(R.string.close, null)
-                .show();
-    }
+    private void showDiagnostics() { startActivity(new Intent(this,SupportActivity.class)); }
 
     private void setBusy(boolean working) {
         busy = working;
@@ -873,6 +866,9 @@ public final class MainActivity extends Activity {
     private void showSettings() {
         LinearLayout content = column();
         content.setPadding(dp(20), dp(8), dp(20), dp(16));
+        Button support = action(getString(R.string.diagnostics), false);
+        support.setOnClickListener(v -> showDiagnostics());
+        content.addView(support, new LinearLayout.LayoutParams(-1, dp(52)));
         updateAlerts = new Switch(this);
         updateAlerts.setText(R.string.daily_alerts);
         updateAlerts.setTextColor(inkColor);
@@ -963,6 +959,7 @@ public final class MainActivity extends Activity {
     }
 
     private void finishCancelled(Releases.App app) {
+        SupportEvents.event("download",app.packageName,"cancelled",InstallManager.mode(this).name());
         if (isDestroyed()) return;
         rows.get(app).note = getString(R.string.cancelled);
         setBusy(false);
@@ -990,7 +987,9 @@ public final class MainActivity extends Activity {
             File apk = null;
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new java.io.IOException(getString(R.string.file_unavailable));
+                SupportEvents.event("download",app.packageName,"started",InstallManager.mode(this).name());
                 apk = ManualApk.prepare(app, input, getCacheDir(), getPackageManager(), () -> cancelPreparation || isDestroyed());
+                SupportEvents.event("download",app.packageName,"ready",InstallManager.mode(this).name());
                 if (cancelPreparation || isDestroyed()) {
                     apk.delete();
                     runOnUiThread(() -> finishCancelled(app));
@@ -1005,6 +1004,7 @@ public final class MainActivity extends Activity {
                     showLocalConfirmation(app, verified);
                 });
             } catch (Exception error) {
+                SupportEvents.event("download",app.packageName,"failed",InstallManager.mode(this).name());
                 if (apk != null) apk.delete();
                 runOnUiThread(() -> {
                     if (isDestroyed()) return;
