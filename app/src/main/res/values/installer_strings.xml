@@ -1,0 +1,10 @@
+<resources>
+    <string name="opening_system_installer">Opening Android installer through Shizuku…</string>
+    <string name="installer_waiting">Confirm or finish installation in Android, then return here. No completed package change has been observed yet.</string>
+    <string name="install_not_observed">Installation check expired without a confirmed package change. You can try again.</string>
+    <string name="install_pair_match">Installed by and Requested by match the expected sources. Android Auto appearance still needs testing.</string>
+    <string name="install_pair_mismatch">Installed, but the installation-source fields do not both match. Open Help with a problem for the exact values.</string>
+    <string name="classic_method_description">Opens Android’s installer and checks Installed by and Requested by after installation.</string>
+    <string name="shizuku_method_description">Opens the system installer through Shizuku. Confirm installation, then return to check both source fields.</string>
+    <string name="xiaomi_shizuku_hint">Xiaomi/MIUI/HyperOS: Shizuku may need Install via USB and USB debugging (Security settings) enabled in Developer options.</string>
+</resources>

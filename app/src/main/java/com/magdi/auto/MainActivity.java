@@ -65,6 +65,7 @@ public final class MainActivity extends Activity {
     private static final int PICK_APK = 42;
     private Button settingsButton;
     private AlertDialog localConfirmation;
+    private boolean resumed;
 
     @Override protected void attachBaseContext(Context base) {
         android.content.SharedPreferences prefs = base.getSharedPreferences("ui", MODE_PRIVATE);
@@ -96,6 +97,7 @@ public final class MainActivity extends Activity {
         Button cancel;
         Button more;
         String operation;
+        Boolean attributionMatch;
         int percent = -1;
     }
 
@@ -164,7 +166,7 @@ public final class MainActivity extends Activity {
                 resumePendingLocal();
             }
         }));
-        if (pickingApp == null && pendingLocalApp() == null) checkReleases();
+        if (pickingApp == null && pendingLocalApp() == null && !InstallManager.hasPending(this)) checkReleases();
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -174,6 +176,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        resumed = true;
         UpdateAlerts.syncSchedule(this);
         refreshAlertsSwitch();
         refreshMethodStatus();
@@ -181,6 +184,11 @@ public final class MainActivity extends Activity {
         checkRepairPending();
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
         resumePendingLocal();
+    }
+
+    @Override protected void onPause() {
+        resumed = false;
+        super.onPause();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -433,9 +441,10 @@ public final class MainActivity extends Activity {
         for (Releases.App app : Releases.App.values()) {
             if (!RepairState.takeFinished(this, app.packageName)) continue;
             new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk").delete();
-            boolean ready = InstallIdentity.read(getPackageManager(), app.packageName).viaPlayStore();
+            boolean ready = InstallIdentity.read(getPackageManager(), app.packageName).matchesExpectedPair(getPackageManager());
             RepairState.needsShizuku(this, app.packageName, !ready);
-            rows.get(app).note = getString(ready ? R.string.repair_classic_success : R.string.repair_shizuku_needed);
+            rows.get(app).note = getString(ready ? R.string.repair_classic_success : R.string.repair_shizuku_needed)
+                    + "\n" + InstallIdentity.read(getPackageManager(), app.packageName).describe();
             render(app);
             if (!ready) offerShizukuRepair(app);
         }
@@ -472,30 +481,52 @@ public final class MainActivity extends Activity {
 
     private void runRepair(Releases.App app) {
         if (busy) return;
-        Row row = rows.get(app);
         setBusy(true);
-        row.status.setText(R.string.repair_verifying);
+        rows.get(app).status.setText(R.string.repair_verifying);
         worker.execute(() -> {
-            File apk = null;
-            String message;
-            boolean self = app.packageName.equals(getPackageName());
+            File temporary = null;
+            File target = new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk");
             try {
-                apk = RepairApk.prepare(this, app);
-                if (self) InstallManager.markPending(this, app.packageName);
-                InstallManager.Outcome outcome = InstallManager.repairVerified(this, apk, app.packageName);
-                message = outcome.message;
-                if (outcome.ok) RepairState.needsShizuku(this, app.packageName, false);
+                temporary = RepairApk.prepare(this, app);
+                if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
+                    throw new java.io.IOException("Repair storage unavailable.");
+                if (!temporary.renameTo(target)) throw new java.io.IOException("Could not save verified repair APK.");
+                runOnUiThread(() -> {
+                    if (isDestroyed()) { target.delete(); return; }
+                    openShizukuInstaller(app, ApkProvider.repairUri(getPackageName(), app), true);
+                });
             } catch (Exception failure) {
-                message = getString(R.string.repair_failed, failure.getMessage());
+                target.delete();
+                String message = getString(R.string.repair_failed, failure.getMessage());
+                runOnUiThread(() -> {
+                    if (isDestroyed()) return;
+                    rows.get(app).note = message;
+                    setBusy(false);
+                });
             } finally {
-                if (apk != null) apk.delete();
-                if (self) InstallManager.clearPending(this, app.packageName);
+                if (temporary != null) temporary.delete();
             }
-            String result = message;
+        });
+    }
+
+    private void openShizukuInstaller(Releases.App app, Uri uri, boolean repair) {
+        setBusy(true);
+        preparationGeneration++;
+        Row row = rows.get(app);
+        row.percent = -1;
+        row.operation = getString(R.string.opening_system_installer);
+        row.cancel.setVisibility(View.GONE);
+        render(app);
+        worker.execute(() -> {
+            InstallManager.Outcome outcome = InstallManager.openShizuku(this, uri, app.packageName, repair);
+            if (!outcome.pending && repair)
+                new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk").delete();
             runOnUiThread(() -> {
                 if (isDestroyed()) return;
-                row.note = result;
+                row.note = outcome.pending ? getString(R.string.installer_waiting) : outcome.message;
                 setBusy(false);
+                if (!outcome.pending && !outcome.ok) showHelp(app);
+                if (resumed) checkPendingInstalls();
             });
         });
     }
@@ -535,6 +566,7 @@ public final class MainActivity extends Activity {
             runOnUiThread(() -> {
                 if (!isDestroyed()) {
                     setBusy(false);
+                    checkPendingInstalls();
                     resumePendingLocal();
                 }
             });
@@ -583,6 +615,14 @@ public final class MainActivity extends Activity {
                 });
                 return;
             }
+            if (mode == InstallMode.SHIZUKU) {
+                runOnUiThread(() -> {
+                    if (isDestroyed()) { apk.delete(); return; }
+                    if (cancelPreparation) { apk.delete(); finishCancelled(app); return; }
+                    openShizukuInstaller(app, ApkProvider.uri(getPackageName(), app), false);
+                });
+                return;
+            }
             if (mode == InstallMode.CLASSIC) {
                 runOnUiThread(() -> {
                     if (isDestroyed()) { apk.delete(); return; }
@@ -625,22 +665,29 @@ public final class MainActivity extends Activity {
         });
     }
 
-    /** After a Classic install, check the install source and repair it if Shizuku or Root can. */
+    /** Confirmation UI launch is pending; only a real package change triggers the two-field check. */
     private void checkPendingInstalls() {
-        InstallMode mode = InstallManager.mode(this);
+        if (busy) return;
         for (Releases.App app : Releases.App.values()) {
-            if (!InstallManager.takeFinishedPending(this, app.packageName)) continue;
+            InstallManager.PendingResult pending = InstallManager.pollPending(this, app.packageName);
+            if (pending.status == InstallManager.PendingStatus.NONE) continue;
             Row row = rows.get(app);
-            worker.execute(() -> {
+            if (pending.status == InstallManager.PendingStatus.WAITING) {
+                row.note = getString(R.string.installer_waiting);
+            } else if (pending.status == InstallManager.PendingStatus.FINISHED) {
                 InstallManager.Outcome outcome = InstallManager.verifyAndFix(
-                        this, mode, app.packageName, message -> { }, "");
-                if (outcome.ok) RepairState.needsShizuku(this, app.packageName, false);
-                runOnUiThread(() -> {
-                    if (isDestroyed()) return;
-                    row.note = outcome.message;
-                    render(app);
-                });
-            });
+                        this, InstallMode.CLASSIC, app.packageName, message -> { }, "");
+                RepairState.needsShizuku(this, app.packageName, !outcome.ok);
+                row.note = outcome.message;
+                row.attributionMatch = outcome.ok;
+                Toast.makeText(this, getString(outcome.ok ? R.string.install_pair_match : R.string.install_pair_mismatch),
+                        Toast.LENGTH_LONG).show();
+            } else {
+                row.note = getString(R.string.install_not_observed);
+            }
+            if (pending.repair && pending.status != InstallManager.PendingStatus.WAITING)
+                new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk").delete();
+            render(app);
         }
     }
 
@@ -703,9 +750,11 @@ public final class MainActivity extends Activity {
                 : ShizukuChannel.granted() ? "Shizuku is ready."
                 : "Shizuku needs permission. It is requested when you tap Install.";
         if (mode == InstallMode.CLASSIC) {
-            methodStatus.setText("Opens Android's installer, then repairs the install source if possible. " + shizuku);
+            methodStatus.setText(getString(R.string.classic_method_description) + " " + shizuku);
         } else if (mode == InstallMode.SHIZUKU) {
-            methodStatus.setText("Installs silently with the Play Store as installer. " + shizuku);
+            methodStatus.setText(getString(R.string.shizuku_method_description) + " " + shizuku
+                    + ((Build.MANUFACTURER.equalsIgnoreCase("Xiaomi") || Build.MANUFACTURER.equalsIgnoreCase("Redmi")
+                    || Build.MANUFACTURER.equalsIgnoreCase("POCO")) ? "\n" + getString(R.string.xiaomi_shizuku_hint) : ""));
         } else {
             methodStatus.setText("Installs silently with su. Android or your root manager may ask you to allow it.");
         }
@@ -770,7 +819,9 @@ public final class MainActivity extends Activity {
                     : getString(R.string.up_to_date);
         }
         // Technical outcomes remain available inside Help with a problem.
-        row.status.setText(row.operation != null ? row.operation : detail == null ? "" : detail);
+        String sourceStatus = row.note != null && row.attributionMatch != null
+                ? getString(row.attributionMatch ? R.string.install_pair_match : R.string.install_pair_mismatch) : detail;
+        row.status.setText(row.operation != null ? row.operation : sourceStatus == null ? "" : sourceStatus);
         row.status.setTextColor(row.error == null ? mutedColor : primaryColor);
         row.install.setEnabled(!busy);
         row.more.setEnabled(!busy);
@@ -983,6 +1034,10 @@ public final class MainActivity extends Activity {
             if (ShizukuChannel.running() && !ShizukuChannel.blocked()) ShizukuChannel.request();
             render(app);
             Toast.makeText(this, rows.get(app).note, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (mode == InstallMode.SHIZUKU) {
+            openShizukuInstaller(app, ApkProvider.uri(getPackageName(), app), false);
             return;
         }
         if (mode == InstallMode.CLASSIC) {

@@ -1,0 +1,10 @@
+<resources>
+    <string name="opening_system_installer">جارٍ فتح مثبّت أندرويد عبر Shizuku…</string>
+    <string name="installer_waiting">أكمل تأكيد التثبيت في أندرويد ثم ارجع هنا. لم يتم رصد تغيير مكتمل للتطبيق حتى الآن.</string>
+    <string name="install_not_observed">انتهت مهلة التحقق دون رصد تغيير مؤكد للتطبيق. يمكنك المحاولة مجددًا.</string>
+    <string name="install_pair_match">حقلا Installed by وRequested by مطابقان للمصادر المتوقعة. ما زال ظهور التطبيق في Android Auto يحتاج تجربة.</string>
+    <string name="install_pair_mismatch">تم التثبيت، لكن حقلي مصدر التثبيت غير مطابقين معًا. افتح حل مشكلة لعرض القيم الفعلية.</string>
+    <string name="classic_method_description">يفتح مثبّت أندرويد ويتحقق من Installed by وRequested by بعد التثبيت.</string>
+    <string name="shizuku_method_description">يفتح مثبّت النظام عبر Shizuku. أكّد التثبيت ثم ارجع للتحقق من حقلي المصدر.</string>
+    <string name="xiaomi_shizuku_hint">شاومي/MIUI/HyperOS: قد يتطلب Shizuku تفعيل Install via USB وUSB debugging (Security settings) من خيارات المطوّر.</string>
+</resources>

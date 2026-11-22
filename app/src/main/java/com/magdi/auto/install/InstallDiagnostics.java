@@ -19,6 +19,11 @@ public final class InstallDiagnostics {
         text.append("Android: ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT)
                 .append(")\n");
         text.append("Build: ").append(Build.DISPLAY).append('\n');
+        text.append("Security patch: ").append(Build.VERSION.SECURITY_PATCH).append('\n');
+        try {
+            text.append("MM Auto: ").append(pm.getPackageInfo(context.getPackageName(), 0).versionName).append('\n');
+            text.append("Android Auto: ").append(pm.getPackageInfo("com.google.android.projection.gearhead", 0).versionName).append('\n');
+        } catch (PackageManager.NameNotFoundException missing) { }
         text.append("Install method: ").append(InstallManager.mode(context)).append('\n');
         text.append("Shizuku: ").append(ShizukuChannel.running() ? "running" : "not running")
                 .append(", API ").append(ShizukuChannel.version())
@@ -36,7 +41,9 @@ public final class InstallDiagnostics {
             }
             InstallIdentity identity = InstallIdentity.read(pm, app.getValue());
             text.append("  ").append(identity.describe()).append('\n');
-            text.append("  Android Auto ready: ").append(identity.viaPlayStore() ? "yes" : "no").append('\n');
+            text.append("  Install metadata pair: ").append(identity.matchesExpectedPair(pm) ? "MATCH" : "MISMATCH").append('\n');
+            text.append("  Last attempt: ").append(InstallManager.lastAttempt(context, app.getValue())).append('\n');
+            text.append("  Android Auto visibility/playback: NOT_TESTED\n");
         }
         return text.toString();
     }

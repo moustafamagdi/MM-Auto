@@ -33,6 +33,12 @@ final class ShellRunner {
         boolean installed() {
             return exit == 0 && text.contains("Success");
         }
+
+        boolean activityStarted() {
+            String lower = text.toLowerCase(java.util.Locale.ROOT);
+            return exit == 0 && text.contains("Starting: Intent") && !lower.contains("error")
+                    && !lower.contains("exception") && !lower.contains("permission denial");
+        }
     }
 
     private ShellRunner() {}

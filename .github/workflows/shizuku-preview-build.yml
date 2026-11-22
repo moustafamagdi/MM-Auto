@@ -1,0 +1,50 @@
+name: Build Shizuku system-installer preview
+on:
+  push:
+    branches: [feature/shizuku-system-installer]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Read exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/zipball/$GITHUB_SHA" > source.zip
+          mkdir source
+          unzip -q source.zip -d source
+          mv source/* project
+          printf '%s\n' "$GITHUB_SHA" > source-commit.txt
+      - name: Install Android build tools
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Build, unit tests and lint
+        working-directory: project
+        run: bash ./gradlew --no-daemon :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease
+      - name: Prepare unsigned APK and local signing tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir publish-build
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -P 16 -f 4 project/app/build/outputs/apk/release/app-release-unsigned.apk publish-build/MM-Auto-0.2.7-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" publish-build/
+          cp source-commit.txt publish-build/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mm-auto-0.2.7-build
+          path: |
+            publish-build/
+            project/app/build/test-results/testReleaseUnitTest/
+            project/app/build/reports/tests/testReleaseUnitTest/
+            project/app/build/reports/lint-results-release.*
+          retention-days: 3

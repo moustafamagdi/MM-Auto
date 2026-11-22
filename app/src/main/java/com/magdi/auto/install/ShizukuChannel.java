@@ -6,9 +6,8 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.ParcelFileDescriptor;
+import android.content.Intent;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -19,7 +18,7 @@ import rikka.shizuku.Shizuku;
 /** Everything that touches the Shizuku API. Works with Shizuku, Shizuku-Next and other compatible builds. */
 public final class ShizukuChannel {
     public static final int REQUEST_CODE = 25;
-    private static final int SERVICE_VERSION = 1;
+    private static final int SERVICE_VERSION = 2;
 
     public interface PermissionListener {
         void onResult(boolean granted);
@@ -97,18 +96,15 @@ public final class ShizukuChannel {
         registered = null;
     }
 
-    static ShellRunner.Output install(Context context, File apk) throws Exception {
+    static ShellRunner.Output openInstaller(Context context, Intent intent) throws Exception {
+        // Use the app's Android profile, rather than hard-coding owner user 0.
+        int userId = android.os.Process.myUid() / 100000;
         return withService(context, service -> {
-            try (ParcelFileDescriptor descriptor =
-                         ParcelFileDescriptor.open(apk, ParcelFileDescriptor.MODE_READ_ONLY)) {
-                return PackageTool.parse(service.install(descriptor, apk.length(), InstallIdentity.PLAY_STORE));
-            }
+            int uid = service.uid();
+            if (uid != 2000 && uid != 0) throw new IOException("The installer service is not running as shell or root.");
+            return PackageTool.parse(service.openInstaller(intent.getDataString(),
+                    intent.getComponent().flattenToString(), userId));
         });
-    }
-
-    static ShellRunner.Output setInstaller(Context context, String packageName) throws Exception {
-        return withService(context, service ->
-                PackageTool.parse(service.setInstaller(packageName, InstallIdentity.PLAY_STORE)));
     }
 
     /** Must be called from a background thread: it waits for the Shizuku service to start. */

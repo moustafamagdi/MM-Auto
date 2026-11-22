@@ -8,6 +8,11 @@
         <package android:name="com.magdi.auto"/>
         <package android:name="com.magdi.iptv"/>
         <package android:name="com.magdi.tube"/>
+        <package android:name="com.google.android.projection.gearhead"/>
+        <intent>
+            <action android:name="android.intent.action.INSTALL_PACKAGE"/>
+            <data android:mimeType="application/vnd.android.package-archive"/>
+        </intent>
     </queries>
     <application android:label="MM Auto" android:icon="@drawable/ic_auto"
         android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true"

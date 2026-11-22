@@ -3,7 +3,7 @@ package com.magdi.auto.install;
 import android.content.pm.InstallSourceInfo;
 import android.content.pm.PackageManager;
 
-/** What Android reports about who installed a package. Android Auto cares about "installed by". */
+/** Android's two install-source fields. A metadata match is not an Android Auto compatibility test. */
 public final class InstallIdentity {
     public static final String PLAY_STORE = "com.android.vending";
 
@@ -33,10 +33,21 @@ public final class InstallIdentity {
         return PLAY_STORE.equals(installing);
     }
 
+    public boolean matchesExpectedPair(PackageManager pm) {
+        return installed && matchesExpectedPair(installing, initiating,
+                SystemInstaller.isSystemInstaller(pm, initiating));
+    }
+
+    static boolean matchesExpectedPair(String installing, String initiating, boolean systemInstaller) {
+        return PLAY_STORE.equals(installing) && initiating != null
+                && !SystemInstaller.SHELL.equals(initiating)
+                && (PLAY_STORE.equals(initiating) || systemInstaller);
+    }
+
     public String describe() {
         if (!installed) return "not installed";
-        return "installed by " + show(installing) + ", requested by " + show(initiating)
-                + ", originating " + show(originating);
+        return "Installed by: " + show(installing) + "\nRequested by: " + show(initiating)
+                + "\nOriginating: " + show(originating);
     }
 
     private static String show(String value) {
