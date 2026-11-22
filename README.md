@@ -133,3 +133,7 @@ MM Auto uses the [Shizuku API](https://github.com/RikkaApps/Shizuku-API). The ov
 ## Support reports (0.2.8 preview)
 
 Settings now includes Support & diagnostics, an installation Support ID, consent-based sending and deletion. See [privacy, delivery and owner workflow](docs/SUPPORT.md). The existing detailed installation report remains manual-only under Advanced.
+
+## Shared Support ID (0.2.9)
+
+The updated MM apps can show one random Support ID on the same Android profile through MM Auto. Updates preserve data; linking keeps old installation IDs searchable. Consent remains separate per app, with renewed consent for shared-ID reporting. Settings now group secondary troubleshooting tools under Advanced. See [support guide](docs/SUPPORT.md) for setup, privacy, deletion and test limitations.

@@ -888,17 +888,22 @@ public final class MainActivity extends Activity {
         content.addView(language, new LinearLayout.LayoutParams(-1, dp(52)));
         Button self = action("MM Auto", false);
         self.setOnClickListener(v -> showVersion(Releases.App.AUTO));
-        content.addView(self, new LinearLayout.LayoutParams(-1, dp(52)));
+
         Button help = action(getString(R.string.troubleshoot), false);
         help.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle(R.string.troubleshoot)
                 .setItems(new String[]{"MM Auto", "MM IPTV", "MM Tube"}, (d, i) -> showHelp(Releases.App.values()[i])).show());
-        content.addView(help, new LinearLayout.LayoutParams(-1, dp(52)));
+
         Button advanced = action(getString(R.string.advanced), false);
         advanced.setOnClickListener(v -> {
             LinearLayout panel = column();
             panel.setPadding(dp(12), dp(12), dp(12), 0);
+            if(self.getParent()!=null)((android.view.ViewGroup)self.getParent()).removeView(self);
+            if(help.getParent()!=null)((android.view.ViewGroup)help.getParent()).removeView(help);
+            panel.addView(self,new LinearLayout.LayoutParams(-1,dp(52)));
+            panel.addView(help,new LinearLayout.LayoutParams(-1,dp(52)));
             addInstallMethod(panel);
-            new AlertDialog.Builder(this).setTitle(R.string.advanced).setView(panel)
+            ScrollView advancedScroll=new ScrollView(this);advancedScroll.addView(panel);
+            new AlertDialog.Builder(this).setTitle(R.string.advanced).setView(advancedScroll)
                     .setNegativeButton(R.string.close, null).show();
         });
         content.addView(advanced, new LinearLayout.LayoutParams(-1, dp(52)));
