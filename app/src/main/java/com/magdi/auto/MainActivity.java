@@ -1181,4 +1181,5 @@ public final class MainActivity extends Activity {
     private int dp(int size) {
         return Math.round(size * getResources().getDisplayMetrics().density);
     }
+ @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)SupportNotice.show(this,null);}
 }
