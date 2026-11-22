@@ -133,4 +133,3 @@ MM Auto uses the [Shizuku API](https://github.com/RikkaApps/Shizuku-API). The ov
 ## Support reports (0.2.8 preview)
 
 Settings now includes Support & diagnostics, an installation Support ID, consent-based sending and deletion. See [privacy, delivery and owner workflow](docs/SUPPORT.md). The existing detailed installation report remains manual-only under Advanced.
-
