@@ -71,6 +71,11 @@ In the 0.2.7 preview, Classic and Shizuku completion checks are read-only. A met
 
 ## Repair install source
 
+**0.2.13:** [Guided setup](docs/GUIDED-SETUP.md) walks through Shizuku availability,
+startup, permission and repair, in Arabic and English. Xiaomi/POCO/Redmi get the
+separate Security settings instruction. Use **Help with a problem → Guided setup**
+on an app card; the same guide opens after choosing **Use Shizuku** following repair.
+
 For an already installed MM app, you do not need to delete it or wait for a newer version:
 
 1. In the 0.2.4 interface, open **⋮ → Help with a problem → Repair installation** on its card (older versions show **Repair install source** directly).

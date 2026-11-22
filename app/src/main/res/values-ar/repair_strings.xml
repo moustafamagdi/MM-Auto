@@ -2,13 +2,13 @@
     <string name="repair_source">إصلاح مصدر التثبيت</string>
     <string name="repair_start_shizuku">شغّل Shizuku، ثم اضغط إصلاح مرة أخرى.</string>
     <string name="repair_allow_shizuku">اسمح لـ MM Auto داخل Shizuku، ثم اضغط إصلاح مرة أخرى.</string>
-    <string name="repair_confirm">فتح مثبّت أندرويد عبر Shizuku لإعادة تثبيت نفس الإصدار من %1$s؟ أكّد التثبيت ثم ارجع للتحقق من Installed by وRequested by. سيتم الاحتفاظ ببيانات التطبيق.</string>
+    <string name="repair_confirm">إصلاح تثبيت %1$s باستخدام Shizuku؟ أكّد التثبيت في أندرويد ثم ارجع هنا. سيتم الاحتفاظ ببيانات التطبيق.</string>
     <string name="repair_verifying">جارٍ التحقق من ملف APK المثبّت قبل الإصلاح…</string>
     <string name="repair_failed">تعذّر الإصلاح. %1$s</string>
     <string name="repair_unknown_apps">اسمح بالتثبيت من MM Auto، ثم اضغط إصلاح مرة أخرى.</string>
     <string name="repair_classic_confirm">إعادة تثبيت نفس الإصدار المثبّت من %1$s باستخدام مثبّت أندرويد؟ سيتم الاحتفاظ بالبيانات. ارجع إلى MM Auto بعد التثبيت لفحص المصدر. سيُعرض Shizuku فقط إذا ظل المصدر غير صحيح.</string>
     <string name="repair_classic_success">حقلا مصدر التثبيت مطابقان بعد إصلاح Classic. لم يتم التحقق من الظهور في Android Auto.</string>
-    <string name="repair_shizuku_needed">حقلا مصدر التثبيت غير مطابقين معًا. هل تريد فتح مثبّت أندرويد عبر Shizuku لإعادة تثبيت نفس الإصدار دون حذف البيانات؟</string>
+    <string name="repair_shizuku_needed">مصدر التثبيت ما زال يحتاج إصلاحًا. دليل الإعداد يساعدك على استخدام Shizuku بدون حذف بيانات تطبيقك.</string>
     <string name="repair_retry_classic">تجربة Classic مرة أخرى</string>
     <string name="repair_use_shizuku">استخدام Shizuku</string>
 </resources>

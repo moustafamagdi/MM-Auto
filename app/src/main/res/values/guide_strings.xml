@@ -1,0 +1,27 @@
+<resources>
+    <string name="guide_title">Guided setup</string>
+    <string name="guide_for">Set up %1$s for Android Auto</string>
+    <string name="guide_install_title">1 of 4 · Get Shizuku</string>
+    <string name="guide_install_body">Some phones need this helper to repair installation. No root or uninstall is needed. Install it, then return here.</string>
+    <string name="guide_install">Get Shizuku</string>
+    <string name="guide_start_title">2 of 4 · Start Shizuku</string>
+    <string name="guide_start_body">Open Shizuku and use Wireless debugging to pair and start it. Wait for “Shizuku is running”, then return here. “Waiting for service” is not ready yet.</string>
+    <string name="guide_open">Open Shizuku</string>
+    <string name="guide_permission_title">3 of 4 · Allow MM Auto</string>
+    <string name="guide_permission_body">Shizuku is running. Allow MM Auto to use it so it can open the system installer.</string>
+    <string name="guide_permission_blocked">In Shizuku, open Authorized applications and enable MM Auto, then return here.</string>
+    <string name="guide_allow">Allow MM Auto</string>
+    <string name="guide_ready_title">4 of 4 · Shizuku connected</string>
+    <string name="guide_ready_body">Shizuku is running and MM Auto has permission. Continue to repair, confirm installation in Android, then return. Your app data is kept.</string>
+    <string name="guide_repair">Continue to repair</string>
+    <string name="guide_pair_help">How do I pair and start it?</string>
+    <string name="guide_pair_steps">1. Connect to Wi-Fi. In phone Settings, enable Developer options and USB debugging. If Developer options is hidden, search Settings for your OS version/build number and tap it repeatedly until enabled.\n\n2. In Shizuku, tap Pairing. Open Wireless debugging → Pair device with pairing code. Enter that code in the Shizuku notification.\n\n3. Return to Shizuku and tap Start. Wait for “Shizuku is running”. If stuck waiting, turn Wireless debugging off and on, then retry.\n\nAfter restarting the phone, Shizuku needs to be started again. Setting names vary by phone.</string>
+    <string name="guide_settings">Open Developer options</string>
+    <string name="guide_official">Official guide</string>
+    <string name="guide_xiaomi_title">One extra setting on Xiaomi / POCO / Redmi</string>
+    <string name="guide_xiaomi_body">In Developer options, enable USB debugging (Security settings). This is separate from USB debugging and allows additional ADB actions. MM Auto cannot check or enable this switch for you. If the installer asks for Install via USB, enable that too. Return here when done.</string>
+    <string name="guide_finish_hint">After repair, check Android Auto → Customize launcher for MM Tube or MM IPTV without “Audio”. A successful source check alone does not confirm visibility.</string>
+    <string name="guide_open_manually">Open Shizuku or Developer options from your phone manually, then return here.</string>
+    <string name="install_source_verified_toast">Installation source verified.</string>
+    <string name="install_source_help_toast">Installation needs a check. Open Help.</string>
+</resources>

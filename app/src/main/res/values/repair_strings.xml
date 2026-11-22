@@ -2,13 +2,13 @@
     <string name="repair_source">Repair install source</string>
     <string name="repair_start_shizuku">Start Shizuku, then tap Repair again.</string>
     <string name="repair_allow_shizuku">Allow MM Auto inside Shizuku, then tap Repair again.</string>
-    <string name="repair_confirm">Open Android’s installer through Shizuku to reinstall the exact installed version of %1$s? Confirm in Android, then return to check Installed by and Requested by. App data is kept.</string>
+    <string name="repair_confirm">Repair %1$s using Shizuku? Confirm installation in Android, then return here. Your app data is kept.</string>
     <string name="repair_verifying">Verifying the installed APK before repair…</string>
     <string name="repair_failed">Repair failed. %1$s</string>
     <string name="repair_unknown_apps">Allow installs from MM Auto, then tap Repair again.</string>
     <string name="repair_classic_confirm">Reinstall the exact installed version of %1$s using Android’s installer? App data is kept. After installation, return to MM Auto to check the source. Shizuku is only offered if the source is still incorrect.</string>
     <string name="repair_classic_success">Install metadata pair matches after Classic repair. Android Auto visibility is not verified.</string>
-    <string name="repair_shizuku_needed">The installation-source fields do not both match. Open Android’s installer through Shizuku to reinstall the same version without clearing data?</string>
+    <string name="repair_shizuku_needed">The installation source still needs repair. Guided setup can help you use Shizuku without deleting your app data.</string>
     <string name="repair_retry_classic">Try Classic again</string>
     <string name="repair_use_shizuku">Use Shizuku</string>
 </resources>

@@ -1,0 +1,27 @@
+<resources>
+    <string name="guide_title">دليل الإعداد</string>
+    <string name="guide_for">إعداد %1$s لأندرويد أوتو</string>
+    <string name="guide_install_title">١ من ٤ · تنزيل Shizuku</string>
+    <string name="guide_install_body">بعض الموبايلات تحتاج هذا التطبيق المساعد لإصلاح التثبيت. لا تحتاج روت أو حذف تطبيقاتك. ثبّته ثم ارجع هنا.</string>
+    <string name="guide_install">تنزيل Shizuku</string>
+    <string name="guide_start_title">٢ من ٤ · تشغيل Shizuku</string>
+    <string name="guide_start_body">افتح Shizuku واستخدم تصحيح الأخطاء اللاسلكي للربط والتشغيل. انتظر ظهور «Shizuku is running» ثم ارجع هنا. «Waiting for service» تعني أنه لم يجهز بعد.</string>
+    <string name="guide_open">فتح Shizuku</string>
+    <string name="guide_permission_title">٣ من ٤ · السماح لـ MM Auto</string>
+    <string name="guide_permission_body">Shizuku شغّال. اسمح لـ MM Auto باستخدامه حتى يتمكن من فتح مثبّت النظام.</string>
+    <string name="guide_permission_blocked">داخل Shizuku افتح Authorized applications وفعّل MM Auto، ثم ارجع هنا.</string>
+    <string name="guide_allow">السماح لـ MM Auto</string>
+    <string name="guide_ready_title">٤ من ٤ · تم الاتصال بـ Shizuku</string>
+    <string name="guide_ready_body">Shizuku شغّال وMM Auto لديه الإذن. تابع الإصلاح وأكّد التثبيت في أندرويد ثم ارجع. سيتم الاحتفاظ ببيانات التطبيق.</string>
+    <string name="guide_repair">متابعة الإصلاح</string>
+    <string name="guide_pair_help">إزاي أربطه وأشغّله؟</string>
+    <string name="guide_pair_steps">١. اتصل بشبكة Wi-Fi. من إعدادات الموبايل فعّل خيارات المطوّر وUSB debugging. لو خيارات المطوّر غير ظاهرة، ابحث عن إصدار النظام أو رقم الإصدار واضغط عليه عدة مرات لتفعيلها.\n\n٢. من Shizuku اضغط Pairing. افتح Wireless debugging ثم Pair device with pairing code. اكتب كود الربط في إشعار Shizuku.\n\n٣. ارجع إلى Shizuku واضغط Start. انتظر «Shizuku is running». لو ظل منتظرًا، اقفل وافتح Wireless debugging وحاول مجددًا.\n\nبعد إعادة تشغيل الموبايل ستحتاج تشغيل Shizuku مجددًا. أسماء الإعدادات تختلف حسب الجهاز.</string>
+    <string name="guide_settings">فتح خيارات المطوّر</string>
+    <string name="guide_official">الدليل الرسمي</string>
+    <string name="guide_xiaomi_title">إعداد إضافي لشاومي وPOCO وRedmi</string>
+    <string name="guide_xiaomi_body">من خيارات المطوّر فعّل USB debugging (Security settings). ده خيار مختلف عن USB debugging ويسمح بإجراءات ADB إضافية. MM Auto لا يستطيع فحص هذا المفتاح أو تفعيله بدلًا منك. لو المثبّت طلب Install via USB، فعّله أيضًا، ثم ارجع هنا.</string>
+    <string name="guide_finish_hint">بعد الإصلاح، راجع Android Auto ← Customize launcher وابحث عن MM Tube أو MM IPTV بدون Audio. نجاح فحص المصدر وحده لا يؤكد الظهور.</string>
+    <string name="guide_open_manually">افتح Shizuku أو خيارات المطوّر يدويًا من الموبايل، ثم ارجع هنا.</string>
+    <string name="install_source_verified_toast">تم التحقق من مصدر التثبيت.</string>
+    <string name="install_source_help_toast">التثبيت يحتاج مراجعة. افتح حل مشكلة.</string>
+</resources>

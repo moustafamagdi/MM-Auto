@@ -66,6 +66,15 @@ public final class MainActivity extends Activity {
     private Button settingsButton;
     private AlertDialog localConfirmation;
     private boolean resumed;
+    private ShizukuGuide shizukuGuide;
+    private String guideTarget;
+    private final Runnable guideRefresh = new Runnable() {
+        @Override public void run() {
+            if (!resumed || shizukuGuide == null || !shizukuGuide.dialog.isShowing()) return;
+            shizukuGuide.refresh();
+            ui.postDelayed(this, 1000);
+        }
+    };
     private final android.content.SharedPreferences.OnSharedPreferenceChangeListener releaseChanges = (prefs, key) -> {
         if (!isDestroyed() && key != null && !"sequence".equals(key)) loadReleaseCache(false);
     };
@@ -166,6 +175,7 @@ public final class MainActivity extends Activity {
         ShizukuChannel.listen(granted -> runOnUiThread(() -> {
             if (isDestroyed()) return;
             refreshMethodStatus();
+            if (shizukuGuide != null) shizukuGuide.refresh();
             if (granted) {
                 Toast.makeText(this, R.string.permission_ready, Toast.LENGTH_SHORT).show();
                 resumePendingLocal();
@@ -173,16 +183,23 @@ public final class MainActivity extends Activity {
         }));
         ReleaseCache.preferences(this).registerOnSharedPreferenceChangeListener(releaseChanges);
         loadReleaseCache(true);
+        if (savedState != null && savedState.containsKey("shizuku_guide")) {
+            String target = savedState.getString("shizuku_guide");
+            showShizukuGuide("setup".equals(target) ? null : Releases.App.valueOf(target));
+        }
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
         if (pickingApp != null) state.putString("picking_app", pickingApp.name());
+        if (shizukuGuide != null && shizukuGuide.dialog.isShowing()) state.putString("shizuku_guide", guideTarget);
         super.onSaveInstanceState(state);
     }
 
     @Override protected void onResume() {
         super.onResume();
         resumed = true;
+        ui.removeCallbacks(guideRefresh);
+        ui.post(guideRefresh);
         UpdateAlerts.syncSchedule(this);
         refreshAlertsSwitch();
         refreshMethodStatus();
@@ -195,6 +212,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onPause() {
         resumed = false;
+        ui.removeCallbacks(guideRefresh);
         super.onPause();
     }
 
@@ -243,6 +261,7 @@ public final class MainActivity extends Activity {
         ReleaseCache.preferences(this).unregisterOnSharedPreferenceChangeListener(releaseChanges);
         cancelPreparation = true;
         ui.removeCallbacksAndMessages(null);
+        if (shizukuGuide != null) shizukuGuide.dialog.dismiss();
         ShizukuChannel.unlisten();
         worker.shutdownNow();
         super.onDestroy();
@@ -378,7 +397,7 @@ public final class MainActivity extends Activity {
         if (row.note != null) description += "\n\n" + row.note;
         AlertDialog.Builder dialog = new AlertDialog.Builder(this).setTitle(R.string.troubleshoot)
                 .setMessage(description).setNegativeButton(R.string.close, null)
-                .setNeutralButton(R.string.diagnostics, (d, w) -> showDiagnostics());
+                .setNeutralButton(R.string.guide_title, (d, w) -> showShizukuGuide(app));
         if (Releases.installed(getPackageManager(), app) != null)
             dialog.setPositiveButton(R.string.repair_action, (d, w) -> repair(app));
         dialog.show();
@@ -467,17 +486,31 @@ public final class MainActivity extends Activity {
                     RepairState.needsShizuku(this, app.packageName, false);
                     repair(app);
                 })
-                .setPositiveButton(R.string.repair_use_shizuku, (dialog, which) -> requestShizukuRepair(app)).show();
+                .setPositiveButton(R.string.repair_use_shizuku, (dialog, which) -> showShizukuGuide(app)).show();
+    }
+
+    private void showShizukuGuide(Releases.App app) {
+        if (isDestroyed() || busy) return;
+        if (shizukuGuide != null) shizukuGuide.dialog.dismiss();
+        guideTarget = app == null ? "setup" : app.name();
+        boolean repairable = app != null && Releases.installed(getPackageManager(), app) != null;
+        ShizukuGuide shown = new ShizukuGuide(this, app == null ? null : app.title,
+                repairable ? () -> requestShizukuRepair(app) : null);
+        shizukuGuide = shown;
+        shown.dialog.setOnDismissListener(d -> {
+            if (shizukuGuide != shown) return;
+            shizukuGuide = null; guideTarget = null; ui.removeCallbacks(guideRefresh);
+        });
+        shown.show();
+        ui.removeCallbacks(guideRefresh);
+        ui.post(guideRefresh);
     }
 
     private void requestShizukuRepair(Releases.App app) {
         if (busy) return;
         Row row = rows.get(app);
         if (!ShizukuChannel.granted()) {
-            if (!ShizukuChannel.running()) row.note = getString(R.string.repair_start_shizuku);
-            else if (ShizukuChannel.blocked()) row.note = getString(R.string.repair_allow_shizuku);
-            else ShizukuChannel.request();
-            render(app);
+            showShizukuGuide(app);
             return;
         }
         new AlertDialog.Builder(this)
@@ -721,8 +754,8 @@ public final class MainActivity extends Activity {
                 RepairState.needsShizuku(this, app.packageName, !outcome.ok);
                 row.note = outcome.message;
                 row.attributionMatch = outcome.ok;
-                Toast.makeText(this, getString(outcome.ok ? R.string.install_pair_match : R.string.install_pair_mismatch),
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(this, getString(outcome.ok ? R.string.install_source_verified_toast : R.string.install_source_help_toast),
+                        Toast.LENGTH_SHORT).show();
             } else {
                 row.attributionMatch = null;
                 row.note = getString(R.string.install_not_observed);
@@ -945,6 +978,9 @@ public final class MainActivity extends Activity {
             panel.addView(self,new LinearLayout.LayoutParams(-1,dp(52)));
             panel.addView(help,new LinearLayout.LayoutParams(-1,dp(52)));
             addInstallMethod(panel);
+            Button guide = action(getString(R.string.guide_title), false);
+            guide.setOnClickListener(clicked -> showShizukuGuide(null));
+            panel.addView(guide, new LinearLayout.LayoutParams(-1, -2));
             ScrollView advancedScroll=new ScrollView(this);advancedScroll.addView(panel);
             new AlertDialog.Builder(this).setTitle(R.string.advanced).setView(advancedScroll)
                     .setNegativeButton(R.string.close, null).show();
