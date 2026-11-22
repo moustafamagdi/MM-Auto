@@ -1,0 +1,92 @@
+name: Publish signed MM Auto 0.2.7 preview
+on:
+  push:
+    branches: [publish-mm-auto-0.2.7]
+    paths:
+      - .github/workflows/publish-0.2.7.yml
+      - .release-upload/MM-Auto-0.2.7.apk
+permissions:
+  contents: read
+concurrency:
+  group: publish-mm-auto-0.2.7
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_COMMIT: 4121c6cba43fbe732bb98020c464380bf6eda223
+    steps:
+      - name: Verify the signed APK, stage a draft and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/contents/.release-upload/MM-Auto-0.2.7.apk?ref=$GITHUB_SHA" --jq .content | base64 --decode > MM-Auto-0.2.7.apk
+          echo "fb19dd491d23c847d780b651e950c4c049fdeae1f2c09b67d2a39b2c29007a85  MM-Auto-0.2.7.apk" | sha256sum --check
+          cat > release-notes.md <<'NOTES'
+          ## Shizuku system-installer preview
+          
+          Shizuku now opens Android's real system package installer instead of using silent pm install. Confirm installation in Android, then return to MM Auto.
+          
+          - Applies to online installs/updates, manual APK imports and same-version Shizuku repairs.
+          - Checks Installed by and Requested by together. A metadata MATCH requires com.android.vending as installer and Google Play or a resolved system package installer as initiator. Shell, missing and third-party initiators do not match.
+          - Opening the installer is pending, not success. Completion requires a package update-time change; pending state survives activity/process recreation. Cancellation or an early return is not counted as a successful installation.
+          - Resolves the actual system installer, uses the current Android profile and grants read-only access to the verified private APK URI.
+          - No silent pm install, pm set-installer, Classic or Root fallback in the Shizuku route.
+          - Diagnostics includes both source fields, build/security patch and the last attempt. Android Auto visibility/playback is explicitly NOT_TESTED.
+          - Retains 0.2.6 sharing and developer-contact features and the existing APK verification rules.
+          
+          This uses the King-style Shizuku UserService / am start route. King's separate hidden-Binder launcher is not included.
+          
+          ### Try it
+          
+          Install this APK over the existing official MM Auto without uninstalling. Start Shizuku and grant MM Auto permission. Select Shizuku under Settings -> Advanced settings for installs/updates. For an already installed app, use its menu -> Help with a problem -> Repair installation, and choose Use Shizuku when offered. Confirm Android's installer, return to MM Auto and inspect Diagnostics.
+          
+          On Xiaomi/MIUI/HyperOS, check Install via USB and USB debugging (Security settings) in Developer options. Device support is not guaranteed by this preview.
+          
+          ### Validation
+          
+          Release build and all 47 unit/Robolectric tests passed. Lint: 0 errors, 11 warnings. APK aligned and signed with the original certificate. Package/version/minSdk and absence of private signing/account assets verified.
+          
+          Physical-device Shizuku IPC, Xiaomi/HyperOS behavior, self-update and Android Auto launcher/video playback have not been tested with this build. Earlier Samsung silent-install tests do not validate the new route.
+          
+          Package: com.magdi.auto
+          Version: 0.2.7 (versionCode=12), Android 11/API 30 minimum
+          Certificate SHA-256: 6d9d30d8f427a6cfc0241831d1e324e684fe2aefda72925c89ef872bf3a5ab65
+          APK SHA-256: fb19dd491d23c847d780b651e950c4c049fdeae1f2c09b67d2a39b2c29007a85
+          Source: feature/shizuku-system-installer, commit 4121c6cba43fbe732bb98020c464380bf6eda223 (not merged into main).
+          Build and test run: https://github.com/moustafamagdi/MM-Auto/actions/runs/44991678039
+          NOTES
+          rid="$(gh api "repos/$GH_REPO/releases?per_page=100" --jq '.[] | select(.tag_name == "v0.2.7") | .id')"
+          if [ -z "$rid" ]; then
+            gh release create v0.2.7 --repo "$GH_REPO" --draft --prerelease --target "$SOURCE_COMMIT" --title "MM Auto 0.2.7 — Shizuku System Installer Preview" --notes-file release-notes.md
+            rid="$(gh api "repos/$GH_REPO/releases?per_page=100" --jq '.[] | select(.tag_name == "v0.2.7") | .id')"
+          fi
+          [[ "$rid" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/releases/$rid" > staged.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('staged.json'))
+          assert r['tag_name']=='v0.2.7' and r['prerelease']
+          assert r['target_commitish']=='4121c6cba43fbe732bb98020c464380bf6eda223'
+          PY
+          if [ "$(gh api "repos/$GH_REPO/releases/$rid" --jq '.assets | length')" = 0 ]; then
+            gh release upload v0.2.7 --repo "$GH_REPO" "MM-Auto-0.2.7.apk#versionCode=12"
+          fi
+          gh api "repos/$GH_REPO/releases/$rid" > staged.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('staged.json'));a,=r['assets']
+          assert a['name']=='MM-Auto-0.2.7.apk' and a['label']=='versionCode=12'
+          assert a['size']==205615 and a['state']=='uploaded'
+          assert a['digest']=='sha256:fb19dd491d23c847d780b651e950c4c049fdeae1f2c09b67d2a39b2c29007a85'
+          PY
+          if [ "$(gh api "repos/$GH_REPO/releases/$rid" --jq .draft)" = true ]; then
+            gh release edit v0.2.7 --repo "$GH_REPO" --draft=false --prerelease
+          fi
+          gh api "repos/$GH_REPO/git/ref/tags/v0.2.7" --jq .object.sha | grep -Fx "$SOURCE_COMMIT"
+          gh release view v0.2.7 --repo "$GH_REPO" --json url,isDraft,isPrerelease,assets
