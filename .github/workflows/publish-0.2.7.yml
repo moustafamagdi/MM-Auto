@@ -61,11 +61,7 @@ jobs:
           Source: feature/shizuku-system-installer, commit 4121c6cba43fbe732bb98020c464380bf6eda223 (not merged into main).
           Build and test run: https://github.com/moustafamagdi/MM-Auto/actions/runs/44991678039
           NOTES
-          rid="$(gh api "repos/$GH_REPO/releases?per_page=100" --jq '.[] | select(.tag_name == "v0.2.7") | .id')"
-          if [ -z "$rid" ]; then
-            gh release create v0.2.7 --repo "$GH_REPO" --draft --prerelease --target "$SOURCE_COMMIT" --title "MM Auto 0.2.7 — Shizuku System Installer Preview" --notes-file release-notes.md
-            rid="$(gh api "repos/$GH_REPO/releases?per_page=100" --jq '.[] | select(.tag_name == "v0.2.7") | .id')"
-          fi
+          rid=454240214
           [[ "$rid" =~ ^[0-9]+$ ]]
           gh api "repos/$GH_REPO/releases/$rid" > staged.json
           python3 - <<'PY'
