@@ -100,7 +100,12 @@ public final class SystemInstallerFlowTest {
     @Test public void confirmationStateSurvivesARecreatedContextAndIsConsumedOnce() {
         handler("com.google.android.packageinstaller", true);
         installed(100);
-        InstallManager.openSystemInstaller(context, APK, "com.magdi.tube", true,
+        Uri repairUri = Uri.parse("content://com.magdi.auto.downloads/repair/com.magdi.tube.apk");
+        ResolveInfo resolve = pm.queryIntentActivities(new Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setDataAndType(APK, SystemInstaller.MIME), 0).get(0);
+        shadowOf(pm).addResolveInfoForIntent(new Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setDataAndType(repairUri, SystemInstaller.MIME), resolve);
+        InstallManager.openSystemInstaller(context, repairUri, "com.magdi.tube", true,
                 (ctx, intent) -> new ShellRunner.Output(0, "Starting: Intent {}"));
         RecordingContext recreated = new RecordingContext(context.getBaseContext());
         assertTrue(InstallManager.hasPending(recreated));
@@ -139,6 +144,15 @@ public final class SystemInstallerFlowTest {
                 (ctx, intent) -> { throw new AssertionError("Third-party installer was launched"); });
         assertFalse(out.pending);
         assertFalse(out.ok);
+        assertTrue(context.readers.isEmpty());
+    }
+
+    @Test public void mismatchedPackageNeverReachesTheInstaller() {
+        handler("com.google.android.packageinstaller", true);
+        InstallManager.Outcome out = InstallManager.openSystemInstaller(context, APK, "com.magdi.iptv", false,
+                (ctx, intent) -> { throw new AssertionError("Wrong APK was launched"); });
+        assertFalse(out.ok);
+        assertFalse(out.pending);
         assertTrue(context.readers.isEmpty());
     }
 }

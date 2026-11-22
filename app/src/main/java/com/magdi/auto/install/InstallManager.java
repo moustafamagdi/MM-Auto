@@ -76,6 +76,10 @@ public final class InstallManager {
     static Outcome openSystemInstaller(Context context, Uri apk, String packageName, boolean repair,
                                        InstallerLauncher launcher) {
         try {
+            PackageTool.checkApkUri(apk.toString());
+            if (!(packageName + ".apk").equals(apk.getLastPathSegment())
+                    || (apk.getPathSegments().size() == 2) != repair)
+                return fail("The verified APK URI does not match this installation request.");
             SystemInstaller target = SystemInstaller.resolve(context.getPackageManager(), apk);
             target.grant(context, apk);
             markPending(context, packageName, apk, repair);

@@ -24,7 +24,7 @@ Welcome to the official **MM apps hub**, maintained by [moustafamagdi](https://g
 
 **Start with [MM Auto](https://github.com/moustafamagdi/MM-Auto/releases)** to manage both apps together. You can also visit each app's repository above for its own setup instructions and troubleshooting. MM Auto is the installation and maintenance hub; content browsing and playback happen in the individual apps.
 
-> **Experimental software.** Install-source attribution is one part of Android Auto compatibility. A “ready” result in Diagnostics does not guarantee visibility or playback. This independent project is not affiliated with Google, Android Auto or Shizuku.
+> **Experimental software.** Install-source attribution is one part of Android Auto compatibility. A matching install-source pair in Diagnostics does not guarantee visibility or playback. This independent project is not affiliated with Google, Android Auto or Shizuku.
 
 ## What MM Auto handles for you
 
@@ -52,10 +52,10 @@ MM Auto is designed for these apps, not arbitrary APKs. It does not supply IPTV 
 1. Open [Releases](https://github.com/moustafamagdi/MM-Auto/releases) and download `MM-Auto-<version>.apk`. Current releases are experimental/prereleases. The source ZIP is not an installable app.
 2. Install on Android 11 or later. To update an official MM Auto installation, install over it rather than uninstalling it.
 3. Open MM Auto and tap **Check for updates**. Existing installation settings remain selected; optional method choices are under **Settings → Advanced settings** in the 0.2.4 source.
-4. Tap **Install** or **Update** and follow the permission prompts. After Classic installation, return to MM Auto.
+4. Tap **Install** or **Update** and follow the permission prompts. After Classic or Shizuku installation, return to MM Auto to verify both install-source fields.
 5. Use **⋮ → Help with a problem** for repair and Diagnostics, then test the target app in your Android Auto setup while parked.
 
-The 0.2.4 UI refresh is in the source; an installable update still requires signing with the original release key. See [UI changes and validation](docs/UI-REFRESH.md). For manual downloads, open **⋮ → Releases page**, download an APK from Assets, then return to **⋮ → Choose APK**.
+The simplified interface supports Arabic/English and light/dark appearance. See [UI changes and validation](docs/UI-REFRESH.md). For manual downloads, open **⋮ → Releases page**, download an APK from Assets, then return to **⋮ → Choose APK**.
 
 For MM Auto itself, discovery considers compatible previews. For IPTV and Tube, a compatible stable release takes priority. **Update** appears only when the selected release is newer than the installed version.
 
@@ -64,10 +64,10 @@ For MM Auto itself, discovery considers compatible previews. For IPTV and Tube, 
 | Method | Requirements | Behavior |
 | --- | --- | --- |
 | **Classic** | Allow “Install unknown apps” for MM Auto | Opens Android's installer and requests Play Store attribution. Device behavior varies. |
-| **Shizuku** | [Shizuku](https://github.com/RikkaApps/Shizuku) running and permission granted | Uses a shell service with `pm install -r -i com.android.vending`. No root is required on the tested Samsung device. |
+| **Shizuku** | [Shizuku](https://github.com/RikkaApps/Shizuku) running and permission granted | Opens the real system installer through a Shizuku UserService. Confirm in Android, then return to verify both source fields. No silent `pm install` fallback. |
 | **Root** | An existing root setup and `su` permission | Uses the root shell installation path. **Untested**; compatibility is not guaranteed. |
 
-Normal installation flows can attempt source repair afterward. When `pm set-installer` is refused, the cached-download fallback can reinstall a matching verified APK through an available privileged channel. The dedicated repair button follows the separate Classic-first flow below.
+In the 0.2.7 preview, Classic and Shizuku completion checks are read-only. A metadata match requires **Installed by: com.android.vending** together with **Requested by: Google Play or a resolved system package installer**. Shell, missing and third-party initiators do not match. Root keeps its separate existing installation path. See [Shizuku preview details](docs/SHIZUKU-SYSTEM-INSTALLER.md).
 
 ## Repair install source
 
@@ -75,12 +75,14 @@ For an already installed MM app, you do not need to delete it or wait for a newe
 
 1. In the 0.2.4 interface, open **⋮ → Help with a problem → Repair installation** on its card (older versions show **Repair install source** directly).
 2. Allow installs from MM Auto if prompted, and complete the **Classic** installer.
-3. Return to MM Auto. If Android reports Google Play Store as installer, repair finishes without Shizuku.
+3. Return to MM Auto. If both installation-source fields match, repair finishes without Shizuku.
 4. Otherwise, choose **Use Shizuku**, **Try Classic again**, or **Cancel**. Shizuku requires permission and separate confirmation; this repair flow does not invoke it automatically.
 
 Repair verifies the installed APK's package, exact version code and pinned signer, enforces a size limit, checks SHA-256 copy integrity, and rejects private account assets. Split APKs are not supported. The repaired app closes during replacement. Cancelling the installer does not count as success; pending verification expires after 30 minutes.
 
 ## Tested behavior and limits
+
+The device observations below describe earlier builds. They do **not** validate the new 0.2.7 system-installer Shizuku route; that route still needs physical-device testing.
 
 | Scenario | Status |
 | --- | --- |
@@ -93,7 +95,7 @@ Repair verifies the installed APK's package, exact version code and pinned signe
 | Self-update/self-repair and settings preservation | Not fully verified. |
 | Android Auto video playback | Not verified. |
 
-The current source has **27 passing unit tests** covering shell I/O/timeouts, repair validation, pending repair state APK filename matching, and manual-import bounds/cancellation cleanup. Unit tests do not replace device testing.
+The original 27-test suite is retained, with additional source-pair, system-installer dispatch, URI-grant and pending-install lifecycle regression tests. Unit tests do not replace device testing.
 
 ## Security and privacy
 

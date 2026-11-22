@@ -513,6 +513,7 @@ public final class MainActivity extends Activity {
         setBusy(true);
         preparationGeneration++;
         Row row = rows.get(app);
+        row.attributionMatch = null;
         row.percent = -1;
         row.operation = getString(R.string.opening_system_installer);
         row.cancel.setVisibility(View.GONE);
@@ -673,6 +674,7 @@ public final class MainActivity extends Activity {
             if (pending.status == InstallManager.PendingStatus.NONE) continue;
             Row row = rows.get(app);
             if (pending.status == InstallManager.PendingStatus.WAITING) {
+                row.attributionMatch = null;
                 row.note = getString(R.string.installer_waiting);
             } else if (pending.status == InstallManager.PendingStatus.FINISHED) {
                 InstallManager.Outcome outcome = InstallManager.verifyAndFix(
@@ -683,6 +685,7 @@ public final class MainActivity extends Activity {
                 Toast.makeText(this, getString(outcome.ok ? R.string.install_pair_match : R.string.install_pair_mismatch),
                         Toast.LENGTH_LONG).show();
             } else {
+                row.attributionMatch = null;
                 row.note = getString(R.string.install_not_observed);
             }
             if (pending.repair && pending.status != InstallManager.PendingStatus.WAITING)

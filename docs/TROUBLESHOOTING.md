@@ -20,13 +20,15 @@ Complete the installer and return to MM Auto. For the dedicated repair button, M
 
 If Android offers multiple installer apps, select the system **Package installer** when testing Classic. A third-party installer is a different path.
 
-## `pm set-installer` fails with a certificate error
+## Shizuku opens the system installer
 
-This does not establish that `pm install -i` will fail. On the tested Samsung Android 17 device, source editing was refused while reinstalling through Shizuku succeeded. Report the exact error and build rather than assuming Root is the only option.
+In 0.2.7, Shizuku uses the system package installer confirmation UI through its UserService, rather than silent `pm install`. Confirm the install and return to MM Auto. Merely opening or cancelling the installer does not count as completed installation. APK read grants and repair files are kept until a package change is observed or the 30-minute verification window expires.
 
-## Diagnostics says “ready: yes,” but Android Auto does not show the app
+For Xiaomi/MIUI/HyperOS, check the Shizuku permission and the device's **Install via USB** and **USB debugging (Security settings)** developer options. This preview has not been physically validated on Xiaomi. A launch error is reported; MM Auto does not silently switch methods or clear data.
 
-The flag checks `installingPackageName == com.android.vending` only. It does not validate Android Auto eligibility, the target manifest, developer settings or playback. Report the target version and whether you tested in a car or Desktop Head Unit. Test while parked.
+## Diagnostics shows an installation-source mismatch
+
+Read **Installed by** and **Requested by** together. The expected pair is Play Store as installer and either Play Store or a resolved system installer as initiator. A shell, missing or unverified third-party initiator fails the check even if Installed by says Play Store. A MATCH is diagnostic only; Android Auto visibility and playback are still marked NOT_TESTED.
 
 ## Signature or version mismatch
 
