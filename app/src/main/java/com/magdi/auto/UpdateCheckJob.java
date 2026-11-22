@@ -29,7 +29,8 @@ public final class UpdateCheckJob extends JobService {
                 if (Thread.currentThread().isInterrupted()) return;
                 if (Releases.installed(getPackageManager(), app) == null) continue;
                 try {
-                    updates.put(app, Releases.latest(app, network));
+                    ReleaseCache.Snapshot saved = ReleaseCache.check(this, app, () -> Releases.latest(app, network));
+                    updates.put(app, saved.release);
                 } catch (Exception unavailable) {
                     // The next scheduled check retries this app without blocking the other checks.
                 }

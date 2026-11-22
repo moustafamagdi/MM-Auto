@@ -60,4 +60,5 @@
     <string name="open_failed">This action is not available on this device.</string>
     <string name="permission_ready">Permission allowed. Tap Install or Repair again.</string>
     <string name="details_error">Technical details</string>
+    <string name="last_successful_check">Last successful check: %1$s</string>
 </resources>

@@ -60,4 +60,5 @@
     <string name="open_failed">هذا الإجراء غير متاح على الجهاز.</string>
     <string name="permission_ready">تم السماح. اضغط تثبيت أو إصلاح مرة أخرى.</string>
     <string name="details_error">تفاصيل تقنية</string>
+    <string name="last_successful_check">آخر فحص ناجح: %1$s</string>
 </resources>

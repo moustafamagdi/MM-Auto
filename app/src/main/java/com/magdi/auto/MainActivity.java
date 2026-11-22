@@ -66,6 +66,9 @@ public final class MainActivity extends Activity {
     private Button settingsButton;
     private AlertDialog localConfirmation;
     private boolean resumed;
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener releaseChanges = (prefs, key) -> {
+        if (!isDestroyed() && key != null && !"sequence".equals(key)) loadReleaseCache(false);
+    };
 
     @Override protected void attachBaseContext(Context base) {
         android.content.SharedPreferences prefs = base.getSharedPreferences("ui", MODE_PRIVATE);
@@ -90,6 +93,8 @@ public final class MainActivity extends Activity {
         String error;
         String note;
         boolean checked;
+        long checkedAt;
+        long checkSequence;
         LinearLayout card;
         TextView version;
         Button manual;
@@ -166,7 +171,8 @@ public final class MainActivity extends Activity {
                 resumePendingLocal();
             }
         }));
-        if (pickingApp == null && pendingLocalApp() == null && !InstallManager.hasPending(this)) checkReleases();
+        ReleaseCache.preferences(this).registerOnSharedPreferenceChangeListener(releaseChanges);
+        loadReleaseCache(true);
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -184,6 +190,7 @@ public final class MainActivity extends Activity {
         checkRepairPending();
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
         resumePendingLocal();
+        loadReleaseCache(false);
     }
 
     @Override protected void onPause() {
@@ -233,6 +240,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        ReleaseCache.preferences(this).unregisterOnSharedPreferenceChangeListener(releaseChanges);
         cancelPreparation = true;
         ui.removeCallbacksAndMessages(null);
         ShizukuChannel.unlisten();
@@ -533,6 +541,32 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void loadReleaseCache(boolean initial) {
+        worker.execute(() -> {
+            EnumMap<Releases.App, ReleaseCache.Snapshot> saved = new EnumMap<>(Releases.App.class);
+            for (Releases.App app : Releases.App.values()) saved.put(app, ReleaseCache.read(this, app));
+            runOnUiThread(() -> {
+                if (isDestroyed()) return;
+                for (Releases.App app : Releases.App.values()) {
+                    applyReleaseSnapshot(app, saved.get(app));
+                    render(app);
+                }
+                if (initial && pickingApp == null && pendingLocalApp() == null
+                        && !InstallManager.hasPending(this)) checkReleases();
+            });
+        });
+    }
+
+    private void applyReleaseSnapshot(Releases.App app, ReleaseCache.Snapshot saved) {
+        Row row = rows.get(app);
+        if (saved == null || saved.sequence < row.checkSequence) return;
+        if (saved.sequence > row.checkSequence) row.error = null;
+        row.release = saved.release;
+        row.checked = true;
+        row.checkedAt = saved.checkedAt;
+        row.checkSequence = saved.sequence;
+    }
+
     private void checkReleases() {
         if (busy) return;
         setBusy(true);
@@ -544,11 +578,10 @@ public final class MainActivity extends Activity {
         for (Releases.App app : rows.keySet()) render(app);
         worker.execute(() -> {
             for (Releases.App app : Releases.App.values()) {
-                Releases.Release release = null;
                 String error = null;
                 try {
                     SupportEvents.event("release-check",app.packageName,"started","unknown");
-                    release = Releases.latest(app);
+                    Releases.Release release = ReleaseCache.check(this, app, () -> Releases.latest(app)).release;
                     SupportEvents.event("release-check",app.packageName,release==null?"unavailable":"ready","unknown");
                 } catch (Exception failure) {
                     SupportEvents.event("release-check",app.packageName,"failed","unknown");
@@ -556,14 +589,13 @@ public final class MainActivity extends Activity {
                     error = getString(reason != null && (reason.contains("HTTP 403") || reason.contains("HTTP 429"))
                             ? R.string.github_limited : R.string.github_unavailable);
                 }
-                Releases.Release result = release;
+                ReleaseCache.Snapshot result = ReleaseCache.read(this, app);
                 String message = error;
                 runOnUiThread(() -> {
                     if (isDestroyed()) return;
                     Row row = rows.get(app);
-                    row.release = result;
+                    applyReleaseSnapshot(app, result);
                     row.error = message;
-                    row.checked = true;
                     row.operation = null;
                     render(app);
                 });
@@ -807,17 +839,28 @@ public final class MainActivity extends Activity {
         boolean available = release != null && release.isNewer(current);
         row.version.setText(current == null ? getString(R.string.not_installed)
                 : getString(R.string.installed_version, current.versionName));
-        String detail = row.error;
-        if (detail == null && row.checked) {
+        String detail = null;
+        if (row.checked) {
             detail = release == null ? getString(R.string.no_release)
                     : available ? getString(R.string.available_version, release.version)
                     + (release.preview ? " · " + getString(R.string.preview) : "")
                     : getString(R.string.up_to_date);
         }
+        if (row.checkedAt > 0) {
+            String when = java.text.DateFormat.getDateTimeInstance(
+                    java.text.DateFormat.SHORT, java.text.DateFormat.SHORT,
+                    getResources().getConfiguration().getLocales().get(0))
+                    .format(new java.util.Date(row.checkedAt));
+            detail += "\n" + getString(R.string.last_successful_check, when);
+        }
+        if (row.error != null) detail = detail == null ? row.error : detail + "\n" + row.error;
         // Technical outcomes remain available inside Help with a problem.
         String sourceStatus = row.note != null && row.attributionMatch != null
                 ? getString(row.attributionMatch ? R.string.install_pair_match : R.string.install_pair_mismatch) : detail;
-        row.status.setText(row.operation != null ? row.operation : sourceStatus == null ? "" : sourceStatus);
+        String status = sourceStatus == null ? "" : sourceStatus;
+        row.status.setText(row.operation == null ? status
+                : getString(R.string.checking).equals(row.operation) && row.checked
+                    ? status + "\n" + row.operation : row.operation);
         row.status.setTextColor(row.error == null ? mutedColor : primaryColor);
         row.install.setEnabled(!busy);
         row.more.setEnabled(!busy);
