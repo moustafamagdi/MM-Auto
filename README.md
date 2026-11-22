@@ -31,6 +31,7 @@ Welcome to the official **MM apps hub**, maintained by [moustafamagdi](https://g
 - **Discover updates** from the official GitHub repositories, including compatible preview filenames.
 - **Verify APKs** before installation: package, pinned signing certificate, size, checksum when supplied by GitHub, and version code. Reject private initial-account assets.
 - **Use a simpler home screen** with Install, Update or Open, Arabic/English, RTL and light/dark appearance.
+- **Recognize actions at a glance:** Settings, update checks, sharing and contact use outlined, rounded buttons with icons; settings and support screens use the same button styling (0.2.14).
 - **Import an APK manually** from an app’s overflow menu when GitHub checks are unavailable. The same package, signer and version verifier is used.
 - **Choose Classic, Shizuku or Root** in Settings → Advanced settings; the existing choice is preserved.
 - **Repair existing installations** by reinstalling the exact installed version without uninstalling or clearing app data. The repair operation uses a verified local copy, without a GitHub download.

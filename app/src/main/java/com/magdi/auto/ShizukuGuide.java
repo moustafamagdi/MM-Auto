@@ -59,8 +59,7 @@ final class ShizukuGuide {
         content.setPadding(pad,pad,pad,pad);
         status=label(content, "",18);description=label(content,"",16);
         primary=button(content,R.string.guide_install,()->act());
-        primary.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xff2563eb));
-        primary.setTextColor(android.graphics.Color.WHITE);
+        UiStyle.style(primary,true);
         button(content,R.string.guide_pair_help,()->new AlertDialog.Builder(activity)
             .setTitle(R.string.guide_pair_help).setMessage(R.string.guide_pair_steps)
             .setPositiveButton(R.string.guide_settings,(d,w)->openSettings())
@@ -118,7 +117,7 @@ final class ShizukuGuide {
         parent.addView(v,new LinearLayout.LayoutParams(-1,-2));return v;
     }
     private Button button(LinearLayout parent,int text,Runnable action){
-        Button b=new Button(activity);b.setText(text);b.setAllCaps(false);
-        b.setOnClickListener(v->action.run());parent.addView(b,new LinearLayout.LayoutParams(-1,-2));return b;
+        Button b=UiStyle.button(activity,activity.getString(text),false);
+        b.setOnClickListener(v->action.run());parent.addView(b,UiStyle.actionParams(activity));return b;
     }
 }

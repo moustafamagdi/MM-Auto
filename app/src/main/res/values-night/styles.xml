@@ -5,5 +5,13 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:alertDialogTheme">@style/AppDialogTheme</item>
     </style>
+    <style name="AppDialogTheme" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#8BB4FF</item>
+        <item name="android:windowBackground">@drawable/dialog_surface</item>
+    </style>
+    <color name="dialog_surface_color">#101D2F</color>
+    <color name="dialog_border_color">#354964</color>
 </resources>

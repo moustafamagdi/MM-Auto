@@ -1,4 +1,14 @@
-# MM Auto 0.2.4 UI refresh
+# MM Auto UI refresh
+
+## 0.2.14 — Visible actions and consistent menus
+
+Settings, Check for updates, Share app and Contact developer now use bordered, rounded buttons with icons and press/disabled feedback. Cards and overflow actions have visible boundaries. Settings dialogs, support actions, installation details and guided setup use the same light/dark styling. Buttons use wrapping content height and at least 48 dp touch targets; installation-version strings preserve their LTR order within Arabic labels.
+
+Version code: 19. Package and signing identity are unchanged; no preference or diagnostic storage migration is introduced. Release discovery, cached results, installation methods, consent and upload behavior remain unchanged.
+
+Validation: 84 existing JVM/Robolectric tests pass; release/debug builds pass; lint reports 0 errors and 23 existing warnings. Native phone UI was inspected in an API 36 emulator: English/Arabic, light/dark, Settings, Advanced settings and Support, including a 320 dp wide display at 130% font size. The signed release APK was installed and opened in the emulator. Physical phone and Android Auto compatibility were not retested for this visual-only update.
+
+## 0.2.4 baseline
 
 ## User experience
 

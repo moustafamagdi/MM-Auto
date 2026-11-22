@@ -139,10 +139,12 @@ public final class MainActivity extends Activity {
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = text("MM Auto", 26, inkColor, true);
+        title.setGravity(Gravity.START);
         header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         settingsButton = action(getString(R.string.settings), false);
         settingsButton.setOnClickListener(v -> showSettings());
-        header.addView(settingsButton, new LinearLayout.LayoutParams(-2, dp(48)));
+        UiStyle.icon(settingsButton, R.drawable.ic_settings_action);
+        header.addView(settingsButton, new LinearLayout.LayoutParams(-2, -2));
         page.addView(header);
         TextView subtitle = text(getString(R.string.app_subtitle), 16, mutedColor, false);
         subtitle.setPadding(0, dp(6), 0, dp(24));
@@ -159,15 +161,19 @@ public final class MainActivity extends Activity {
         addRow(page, Releases.App.TUBE, R.drawable.ic_tube);
         check = action(getString(R.string.check_updates), false);
         check.setOnClickListener(v -> { if (!busy) checkReleases(); });
-        page.addView(check, new LinearLayout.LayoutParams(-1, dp(52)));
+        UiStyle.icon(check, R.drawable.ic_refresh_action);
+        page.addView(check, UiStyle.actionParams(this));
         Button share = action(getString(R.string.share_app), false);
         share.setOnClickListener(v -> shareApp());
-        page.addView(share, new LinearLayout.LayoutParams(-1, dp(52)));
+        UiStyle.icon(share, R.drawable.ic_share_action);
+        page.addView(share, UiStyle.actionParams(this));
         Button contact = action(getString(R.string.contact_developer), false);
         contact.setOnClickListener(v -> safeStart(new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://wa.me/966597197475"))));
-        page.addView(contact, new LinearLayout.LayoutParams(-1, dp(52)));
+        UiStyle.icon(contact, R.drawable.ic_contact_action);
+        page.addView(contact, UiStyle.actionParams(this));
         setContentView(scroll);
+        UiStyle.systemBars(this);
         if (savedState != null) {
             String selected = savedState.getString("picking_app");
             if (selected != null) pickingApp = Releases.App.valueOf(selected);
@@ -273,7 +279,7 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         row.card = card;
         card.setPadding(dp(18), dp(18), dp(18), dp(14));
-        card.setBackground(shape(surfaceColor, 22));
+        card.setBackground(UiStyle.surface(this, surfaceColor, 22, UiStyle.border(this)));
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView image = new ImageView(this);
@@ -288,6 +294,9 @@ public final class MainActivity extends Activity {
         labels.addView(row.version);
         row.more = action("⋮", false);
         row.more.setTextSize(24);
+        row.more.setPadding(0, 0, 0, 0);
+        row.more.setMinHeight(dp(48));
+        row.more.setMinimumHeight(dp(48));
         row.more.setContentDescription(getString(R.string.more_options, app.title));
         row.more.setOnClickListener(v -> showAppMenu(app, v));
         header.addView(row.more, new LinearLayout.LayoutParams(dp(48), dp(48)));
@@ -302,12 +311,12 @@ public final class MainActivity extends Activity {
         card.addView(row.progress, new LinearLayout.LayoutParams(-1, dp(6)));
         row.install = action("", true);
         row.install.setOnClickListener(v -> primaryAction(app));
-        LinearLayout.LayoutParams mainParams = new LinearLayout.LayoutParams(-1, dp(52));
+        LinearLayout.LayoutParams mainParams = new LinearLayout.LayoutParams(-1, -2);
         mainParams.topMargin = dp(8);
         card.addView(row.install, mainParams);
         row.manual = action(getString(R.string.manual_download), false);
         row.manual.setOnClickListener(v -> showManual(app));
-        card.addView(row.manual, new LinearLayout.LayoutParams(-1, dp(48)));
+        card.addView(row.manual, UiStyle.actionParams(this));
         row.cancel = action(getString(R.string.cancel_download), false);
         row.cancel.setOnClickListener(v -> {
             cancelPreparation = true;
@@ -316,12 +325,12 @@ public final class MainActivity extends Activity {
             render(app);
         });
         row.cancel.setVisibility(View.GONE);
-        card.addView(row.cancel, new LinearLayout.LayoutParams(-1, dp(48)));
+        card.addView(row.cancel, UiStyle.actionParams(this));
         // Repair stays reachable through Help, with its existing implementation unchanged.
         row.repair = action(getString(R.string.troubleshoot), false);
         row.repair.setOnClickListener(v -> showHelp(app));
         row.repair.setVisibility(View.GONE);
-        card.addView(row.repair, new LinearLayout.LayoutParams(-1, dp(48)));
+        card.addView(row.repair, UiStyle.actionParams(this));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
         params.bottomMargin = dp(16);
         page.addView(card, params);
@@ -772,6 +781,7 @@ public final class MainActivity extends Activity {
         GradientDrawable background = new GradientDrawable();
         background.setColor(surfaceColor);
         background.setCornerRadius(dp(16));
+        background.setStroke(dp(1), UiStyle.border(this));
         card.setBackground(background);
         card.addView(text(getString(R.string.install_method), 18, inkColor, true));
 
@@ -796,13 +806,12 @@ public final class MainActivity extends Activity {
         methodStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         card.addView(methodStatus);
 
-        Button diagnostics = new Button(this);
-        diagnostics.setText(R.string.diagnostics);
-        diagnostics.setAllCaps(false);
+        Button diagnostics = action(getString(R.string.diagnostics), false);
         diagnostics.setOnClickListener(view -> showDiagnostics());
-        card.addView(diagnostics, new LinearLayout.LayoutParams(-1, dp(48)));
+        card.addView(diagnostics, UiStyle.actionParams(this));
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.topMargin = dp(12);
         params.bottomMargin = dp(12);
         page.addView(card, params);
         refreshMethodStatus();
@@ -871,7 +880,8 @@ public final class MainActivity extends Activity {
         Releases.Release release = row.release;
         boolean available = release != null && release.isNewer(current);
         row.version.setText(current == null ? getString(R.string.not_installed)
-                : getString(R.string.installed_version, current.versionName));
+                : getString(R.string.installed_version, android.text.BidiFormatter.getInstance(getResources().getConfiguration().getLocales().get(0))
+                        .unicodeWrap(current.versionName, android.text.TextDirectionHeuristics.LTR)));
         String detail = null;
         if (row.checked) {
             detail = release == null ? getString(R.string.no_release)
@@ -924,19 +934,7 @@ public final class MainActivity extends Activity {
     }
 
     private Button action(String title, boolean primary) {
-        Button button = new Button(this);
-        button.setText(title);
-        button.setAllCaps(false);
-        button.setTextSize(15);
-        button.setMinHeight(dp(48));
-        button.setMinimumWidth(dp(48));
-        button.setPaddingRelative(dp(14), 0, dp(14), 0);
-        button.setTextColor(primary ? backgroundColor : primaryColor);
-        android.graphics.drawable.RippleDrawable ripple = new android.graphics.drawable.RippleDrawable(
-                ColorStateList.valueOf(0x337b9edc), shape(primary ? primaryColor : Color.TRANSPARENT, 14),
-                shape(Color.WHITE, 14));
-        button.setBackground(ripple);
-        return button;
+        return UiStyle.button(this, title, primary);
     }
 
     private void showSettings() {
@@ -944,24 +942,28 @@ public final class MainActivity extends Activity {
         content.setPadding(dp(20), dp(8), dp(20), dp(16));
         Button support = action(getString(R.string.diagnostics), false);
         support.setOnClickListener(v -> showDiagnostics());
-        content.addView(support, new LinearLayout.LayoutParams(-1, dp(52)));
+        content.addView(support, UiStyle.actionParams(this));
         updateAlerts = new Switch(this);
         updateAlerts.setText(R.string.daily_alerts);
         updateAlerts.setTextColor(inkColor);
         updateAlerts.setMinHeight(dp(52));
         updateAlerts.setOnClickListener(v -> changeUpdateAlerts());
-        content.addView(updateAlerts);
-        content.addView(text(getString(R.string.daily_description), 14, mutedColor, false));
+        LinearLayout alerts = column();
+        alerts.setPadding(dp(12), dp(4), dp(12), dp(12));
+        alerts.setBackground(UiStyle.surface(this, surfaceColor, 14, UiStyle.border(this)));
+        alerts.addView(updateAlerts);
+        alerts.addView(text(getString(R.string.daily_description), 14, mutedColor, false));
+        content.addView(alerts, UiStyle.actionParams(this));
         refreshAlertsSwitch();
         Button appearance = action(getString(R.string.appearance), false);
         appearance.setOnClickListener(v -> choosePreference("theme", R.string.appearance,
                 new String[]{getString(R.string.system), getString(R.string.light), getString(R.string.dark)},
                 new String[]{"system", "light", "dark"}));
-        content.addView(appearance, new LinearLayout.LayoutParams(-1, dp(52)));
+        content.addView(appearance, UiStyle.actionParams(this));
         Button language = action(getString(R.string.language), false);
         language.setOnClickListener(v -> choosePreference("language", R.string.language,
                 new String[]{getString(R.string.system), "English", "العربية"}, new String[]{"system", "en", "ar"}));
-        content.addView(language, new LinearLayout.LayoutParams(-1, dp(52)));
+        content.addView(language, UiStyle.actionParams(this));
         Button self = action("MM Auto", false);
         self.setOnClickListener(v -> showVersion(Releases.App.AUTO));
 
@@ -975,17 +977,17 @@ public final class MainActivity extends Activity {
             panel.setPadding(dp(12), dp(12), dp(12), 0);
             if(self.getParent()!=null)((android.view.ViewGroup)self.getParent()).removeView(self);
             if(help.getParent()!=null)((android.view.ViewGroup)help.getParent()).removeView(help);
-            panel.addView(self,new LinearLayout.LayoutParams(-1,dp(52)));
-            panel.addView(help,new LinearLayout.LayoutParams(-1,dp(52)));
+            panel.addView(self, UiStyle.actionParams(this));
+            panel.addView(help, UiStyle.actionParams(this));
             addInstallMethod(panel);
             Button guide = action(getString(R.string.guide_title), false);
             guide.setOnClickListener(clicked -> showShizukuGuide(null));
-            panel.addView(guide, new LinearLayout.LayoutParams(-1, -2));
+            panel.addView(guide, UiStyle.actionParams(this));
             ScrollView advancedScroll=new ScrollView(this);advancedScroll.addView(panel);
             new AlertDialog.Builder(this).setTitle(R.string.advanced).setView(advancedScroll)
                     .setNegativeButton(R.string.close, null).show();
         });
-        content.addView(advanced, new LinearLayout.LayoutParams(-1, dp(52)));
+        content.addView(advanced, UiStyle.actionParams(this));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
         new AlertDialog.Builder(this).setTitle(R.string.settings).setView(scroll)
@@ -1217,5 +1219,5 @@ public final class MainActivity extends Activity {
     private int dp(int size) {
         return Math.round(size * getResources().getDisplayMetrics().density);
     }
- @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)SupportNotice.show(this,null);}
+ @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused){UiStyle.systemBars(this);SupportNotice.show(this,null);}}
 }
