@@ -34,6 +34,23 @@ public class ReleaseCacheTest {
         context.getSharedPreferences("release_checks_v1", 0).edit().clear().commit();
     }
 
+    @Test public void fixedNamesUseReleaseMetadataAndSurviveCacheRoundTrip() throws Exception {
+        for (Releases.App app : Releases.App.values()) {
+            org.json.JSONObject asset = new org.json.JSONObject()
+                    .put("name", app.canonicalName).put("state", "uploaded").put("size", 123)
+                    .put("label", "versionCode=501")
+                    .put("browser_download_url", "https://github.com/moustafamagdi/" + app.repo
+                            + "/releases/download/v1.2.3-rc.1/" + app.canonicalName);
+            org.json.JSONObject record = new org.json.JSONObject().put("tag_name", "v1.2.3-rc.1")
+                    .put("assets", new org.json.JSONArray().put(asset));
+            ReleaseCache.check(context, app, () -> Releases.parse(app, record));
+            Releases.Release restored = ReleaseCache.read(context, app).release;
+            assertEquals("1.2.3-rc.1", restored.version);
+            assertEquals(501, restored.versionCode);
+            assertTrue(restored.url.getPath().endsWith("/" + app.canonicalName));
+        }
+    }
+
     private Releases.Release release(Releases.App app, int code) throws Exception {
         String name = app == Releases.App.AUTO ? "MM-Auto" : app == Releases.App.IPTV ? "MM-IPTV" : "MM-Tube";
         return new Releases.Release("0.2." + code, code,

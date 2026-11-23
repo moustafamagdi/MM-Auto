@@ -157,7 +157,7 @@ final class UpdateDownloads {
                         .put("label", "versionCode=" + j.release.versionCode);
                 data.put(new JSONObject().put("app", j.app.name()).put("mode", j.mode.name())
                         .put("installing", j.state == State.INSTALLING)
-                        .put("release", new JSONObject().put("prerelease", j.release.preview)
+                        .put("release", new JSONObject().put("tag_name", j.release.version).put("prerelease", j.release.preview)
                                 .put("assets", new JSONArray().put(asset))));
             }
             // Small journal committed before launching an installer (including MM Auto's own update).

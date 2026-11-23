@@ -75,7 +75,7 @@ final class ReleaseCache {
                     .put("state", "uploaded").put("browser_download_url", release.url.toString())
                     .put("size", release.size).put("digest", release.digest)
                     .put("label", "versionCode=" + release.versionCode);
-            JSONObject record = new JSONObject().put("prerelease", release.preview)
+            JSONObject record = new JSONObject().put("tag_name", release.version).put("prerelease", release.preview)
                     .put("assets", new JSONArray().put(asset));
             Releases.Release validated = Releases.parse(app, record);
             if (validated == null || !validated.version.equals(release.version))

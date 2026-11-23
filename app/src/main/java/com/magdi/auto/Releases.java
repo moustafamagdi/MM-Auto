@@ -41,11 +41,13 @@ final class Releases {
         final String packageName;
         final String repo;
         final Pattern assetName;
+        final String canonicalName;
 
         App(String title, String packageName, String repo, String assetPrefix) {
             this.title = title;
             this.packageName = packageName;
             this.repo = repo;
+            canonicalName = title.replace(' ', '-') + ".apk";
             assetName = Pattern.compile(assetPrefix
                     + "-(\\d{1,8}\\.\\d{1,8}\\.\\d{1,8}(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?)\\.apk");
         }
@@ -153,8 +155,10 @@ final class Releases {
         Release selected = null;
         for (int i = 0; i < assets.length(); i++) {
             JSONObject asset = assets.getJSONObject(i);
-            Matcher name = app.assetName.matcher(asset.getString("name"));
-            if (!name.matches() || !"uploaded".equals(asset.optString("state"))) continue;
+            String filename = asset.getString("name");
+            Matcher name = app.assetName.matcher(filename);
+            boolean canonical = app.canonicalName.equals(filename);
+            if ((!canonical && !name.matches()) || !"uploaded".equals(asset.optString("state"))) continue;
             URL download = new URL(asset.getString("browser_download_url"));
             if (!safeUrl(download, Set.of("github.com")) ||
                     !download.getPath().startsWith("/" + OWNER + "/" + app.repo + "/releases/download/")) {
@@ -169,7 +173,20 @@ final class Releases {
             if (selected != null) throw new IOException("More than one official APK was found.");
             Matcher label = Pattern.compile("^versionCode=(\\d{1,10})$").matcher(asset.optString("label"));
             long versionCode = label.matches() ? Long.parseLong(label.group(1)) : 0;
-            selected = new Release(name.group(1), versionCode, download, size, digest, release.optBoolean("prerelease"));
+            String version;
+            if (canonical) {
+                String tag = release.optString("tag_name");
+                if (tag.isEmpty()) {
+                    // Cached records retain the original release download path.
+                    String path = download.getPath();
+                    tag = path.substring(path.indexOf("/releases/download/") + "/releases/download/".length(),
+                            path.lastIndexOf('/'));
+                }
+                if (!VERSION.matcher(tag).matches() || versionCode <= 0)
+                    throw new IOException("Missing version metadata for canonical APK.");
+                version = tag.startsWith("v") ? tag.substring(1) : tag;
+            } else version = name.group(1);
+            selected = new Release(version, versionCode, download, size, digest, release.optBoolean("prerelease"));
         }
         return selected;
     }

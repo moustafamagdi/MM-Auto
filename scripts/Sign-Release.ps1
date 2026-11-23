@@ -4,7 +4,7 @@ param(
     [string]$Alias,
     [string]$UnsignedApk = (Join-Path $PSScriptRoot '..\app\build\outputs\apk\release\app-release-unsigned.apk'),
     [string]$SdkPath,
-    [string]$OutputApk = (Join-Path $PSScriptRoot '..\dist\MM-Auto-0.2.4.apk')
+    [string]$OutputApk = (Join-Path $PSScriptRoot '..\dist\MM-Auto.apk')
 )
 $ErrorActionPreference = 'Stop'
 $expectedSigner = '6d9d30d8f427a6cfc0241831d1e324e684fe2aefda72925c89ef872bf3a5ab65'
