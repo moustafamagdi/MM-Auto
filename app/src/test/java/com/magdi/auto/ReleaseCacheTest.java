@@ -38,10 +38,10 @@ public class ReleaseCacheTest {
         for (Releases.App app : Releases.App.values()) {
             org.json.JSONObject asset = new org.json.JSONObject()
                     .put("name", app.canonicalName).put("state", "uploaded").put("size", 123)
-                    .put("label", "versionCode=501")
+                    .put("label", "")
                     .put("browser_download_url", "https://github.com/moustafamagdi/" + app.repo
                             + "/releases/download/v1.2.3-rc.1/" + app.canonicalName);
-            org.json.JSONObject record = new org.json.JSONObject().put("tag_name", "v1.2.3-rc.1")
+            org.json.JSONObject record = new org.json.JSONObject().put("tag_name", "v1.2.3-rc.1").put("body", "<!-- mm-version-code: 501 -->")
                     .put("assets", new org.json.JSONArray().put(asset));
             ReleaseCache.check(context, app, () -> Releases.parse(app, record));
             Releases.Release restored = ReleaseCache.read(context, app).release;

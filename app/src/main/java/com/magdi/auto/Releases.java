@@ -175,6 +175,14 @@ final class Releases {
             long versionCode = label.matches() ? Long.parseLong(label.group(1)) : 0;
             String version;
             if (canonical) {
+                Matcher metadata = Pattern.compile("(?m)^<!-- mm-version-code: ([1-9]\\d{0,9}) -->\\r?$")
+                        .matcher(release.optString("body"));
+                if (metadata.find()) {
+                    long declared = Long.parseLong(metadata.group(1));
+                    if (metadata.find() || (versionCode > 0 && declared != versionCode))
+                        throw new IOException("Conflicting version metadata.");
+                    versionCode = declared;
+                }
                 String tag = release.optString("tag_name");
                 if (tag.isEmpty()) {
                     // Cached records retain the original release download path.
