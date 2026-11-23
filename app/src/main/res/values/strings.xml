@@ -67,4 +67,5 @@
     <string name="download_failed_retry">Download could not finish. Tap Update or Install to retry.</string>
     <string name="queue_verify_failed">This APK is no longer needed or could not be verified. Check for updates again.</string>
     <string name="queue_permission">Installation permission is needed. Restore permission, then tap Continue.</string>
+    <string name="support_development">Support development</string>
 </resources>

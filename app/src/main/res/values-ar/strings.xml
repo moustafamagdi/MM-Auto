@@ -67,4 +67,5 @@
     <string name="download_failed_retry">لم يكتمل التنزيل. اضغط تحديث أو تثبيت للمحاولة مجددًا.</string>
     <string name="queue_verify_failed">هذا الملف لم يعد مطلوبًا أو تعذر التحقق منه. افحص التحديثات مجددًا.</string>
     <string name="queue_permission">يلزم السماح بالتثبيت. أعد تفعيل الإذن ثم اضغط متابعة.</string>
+    <string name="support_development">ادعم تطوير التطبيقات</string>
 </resources>
