@@ -88,16 +88,22 @@ final class Releases {
     }
 
     static Release latest(App app, Network network) throws Exception {
+        try (TransferControl control = new TransferControl(30_000)) {
+            return latest(app, network, control);
+        }
+    }
+
+    static Release latest(App app, Network network, TransferControl control) throws Exception {
         String endpoint = "https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases";
         if (app != App.AUTO) {
-            String latest = releaseResponse(endpoint + "/latest", network);
+            String latest = releaseResponse(endpoint + "/latest", network, control);
             if (latest != null) {
                 Release stable = parse(app, new JSONObject(latest));
                 if (stable != null) return stable;
             }
         }
 
-        String history = releaseResponse(endpoint + "?per_page=30", network);
+        String history = releaseResponse(endpoint + "?per_page=30", network, control);
         return history == null ? null : selectRelease(app, new JSONArray(history));
     }
 
@@ -122,18 +128,21 @@ final class Releases {
         return compareVersions(candidate.version, current.version) > 0;
     }
 
-    private static String releaseResponse(String endpoint, Network network) throws IOException {
+    private static String releaseResponse(String endpoint, Network network, TransferControl control) throws IOException {
         HttpURLConnection connection = connect(new URL(endpoint), "application/vnd.github+json", network);
         try {
+            control.attach(connection);
             int status = connection.getResponseCode();
+            control.check();
             if (status == 404) return null;
             if (status != 200) throw new IOException("GitHub returned HTTP " + status + ".");
             try (InputStream input = connection.getInputStream();
                  ByteArrayOutputStream body = new ByteArrayOutputStream()) {
-                copy(input, body, 1024 * 1024, null);
+                copy(input, body, 1024 * 1024, null, control, bytes -> { });
                 return new String(body.toByteArray(), StandardCharsets.UTF_8);
             }
         } finally {
+            control.detach(connection);
             connection.disconnect();
         }
     }
@@ -166,25 +175,38 @@ final class Releases {
     }
 
     static File download(App app, Release release, File cache, PackageManager pm) throws Exception {
+        try (TransferControl control = new TransferControl(10 * 60_000)) {
+            return download(app, release, cache, pm, control, bytes -> { });
+        }
+    }
+
+    interface Progress { void bytes(long count); }
+
+    static File download(App app, Release release, File cache, PackageManager pm,
+                         TransferControl control, Progress progress) throws Exception {
         File directory = new File(cache, "releases");
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Download storage is unavailable.");
         File temp = File.createTempFile(app.packageName, ".apk", directory);
         File apk = new File(directory, app.packageName + ".apk");
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            HttpURLConnection connection = openDownload(release.url);
+            HttpURLConnection connection = openDownload(release.url, control);
             try (InputStream input = connection.getInputStream(); OutputStream output = new FileOutputStream(temp)) {
-                if (copy(input, output, release.size, digest) != release.size) {
+                if (copy(input, output, release.size, digest, control, progress) != release.size) {
                     throw new IOException("Download size does not match the release.");
                 }
             } finally {
+                control.detach(connection);
                 connection.disconnect();
             }
             if (!release.digest.isEmpty() && !release.digest.equalsIgnoreCase("sha256:" + hex(digest.digest()))) {
                 throw new IOException("Download checksum does not match the release.");
             }
             validate(app, release, temp, pm);
-            if (!temp.renameTo(apk)) throw new IOException("Could not save the verified APK.");
+            synchronized (control) {
+                control.check();
+                if (!temp.renameTo(apk)) throw new IOException("Could not save the verified APK.");
+            }
             return apk;
         } finally {
             temp.delete();
@@ -219,21 +241,25 @@ final class Releases {
                 SIGNER.equals(hex(MessageDigest.getInstance("SHA-256").digest(signatures[0].toByteArray())));
     }
 
-    private static HttpURLConnection openDownload(URL url) throws IOException {
+    private static HttpURLConnection openDownload(URL url, TransferControl control) throws IOException {
         for (int redirects = 0; redirects <= 4; redirects++) {
             if (!safeUrl(url, DOWNLOAD_HOSTS)) throw new IOException("Unexpected download host.");
             HttpURLConnection connection = connect(url, "application/octet-stream", null);
             try {
+                control.attach(connection);
                 int status = connection.getResponseCode();
+                control.check();
                 if (status == 200) return connection;
                 if (status < 300 || status >= 400) throw new IOException("Download returned HTTP " + status + ".");
                 String location = connection.getHeaderField("Location");
                 if (location == null) throw new IOException("Download redirect is missing its destination.");
                 url = new URL(url, location);
             } catch (IOException error) {
+                control.detach(connection);
                 connection.disconnect();
                 throw error;
             }
+            control.detach(connection);
             connection.disconnect();
         }
         throw new IOException("Too many download redirects.");
@@ -255,15 +281,21 @@ final class Releases {
         return connection;
     }
 
-    private static long copy(InputStream input, OutputStream output, long limit, MessageDigest digest) throws IOException {
+    static long copy(InputStream input, OutputStream output, long limit, MessageDigest digest,
+                     TransferControl control, Progress progress) throws IOException {
         byte[] buffer = new byte[32 * 1024];
         long size = 0;
         int read;
-        while ((read = input.read(buffer)) != -1) {
+        while (true) {
+            control.check();
+            read = input.read(buffer);
+            control.check();
+            if (read == -1) break;
             size += read;
             if (size > limit) throw new IOException("Download exceeds the expected size.");
             output.write(buffer, 0, read);
             if (digest != null) digest.update(buffer, 0, read);
+            progress.bytes(size);
         }
         return size;
     }

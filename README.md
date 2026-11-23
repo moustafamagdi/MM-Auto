@@ -12,6 +12,7 @@ Install, update and manage MM Tube and MM IPTV from one place on your Android ph
 
 - Install, update or open MM Tube and MM IPTV.
 - See which apps need updating, with the last successful check kept on screen.
+- Download updates together, cancel each download separately, and install them one at a time.
 - Receive optional update notifications.
 - Follow the setup guide when an app does not appear in Android Auto, including extra steps for some Xiaomi phones.
 - Choose Arabic or English and a light or dark appearance.

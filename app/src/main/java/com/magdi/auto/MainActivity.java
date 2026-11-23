@@ -51,14 +51,23 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_UPDATE_ALERTS = 24;
     private static final String ASKED_FOR_ALERTS = "asked_for_alerts";
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private final Handler ui = new Handler(Looper.getMainLooper());
     private final EnumMap<Releases.App, Row> rows = new EnumMap<>(Releases.App.class);
-    private Button check;
+    private Button check, downloadAll;
+    private UpdateDownloads downloads;
+    private final ExecutorService checks = Executors.newFixedThreadPool(3);
+    private final EnumMap<Releases.App, TransferControl> checkCalls = new EnumMap<>(Releases.App.class);
+    private final Runnable downloadsChanged = () -> {
+        if (isDestroyed()) return;
+        for (Releases.App app : rows.keySet()) render(app);
+        refreshActions();
+        ui.post(this::resumeInstallQueue);
+    };
     private Switch updateAlerts;
     private TextView methodStatus;
     private boolean busy;
     private int backgroundColor, surfaceColor, primaryColor, inkColor, mutedColor;
     private LinearLayout selfBanner;
-    private final Handler ui = new Handler(Looper.getMainLooper());
     private volatile boolean cancelPreparation;
     private Releases.App pickingApp;
     private int preparationGeneration;
@@ -117,6 +126,8 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedState) {
         super.onCreate(savedState);
+        downloads = UpdateDownloads.get(this);
+        for (UpdateDownloads.Job job : downloads.jobs.values()) if (job.recoveredInstaller) queuePaused = true;
         boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         backgroundColor = dark ? 0xff0b1220 : 0xfff3f6fc;
@@ -163,6 +174,21 @@ public final class MainActivity extends Activity {
         check.setOnClickListener(v -> { if (!busy) checkReleases(); });
         UiStyle.icon(check, R.drawable.ic_refresh_action);
         page.addView(check, UiStyle.actionParams(this));
+        downloadAll = action(getString(R.string.download_all_updates), true);
+        downloadAll.setOnClickListener(v -> {
+            InstallMode mode = InstallManager.mode(this);
+            if (mode == InstallMode.CLASSIC && !getPackageManager().canRequestPackageInstalls()) {
+                explainInstallPermission(Releases.App.AUTO); return;
+            }
+            if (mode == InstallMode.SHIZUKU && !ShizukuChannel.granted()) {
+                showShizukuGuide(null); return;
+            }
+            for (Releases.App app : new Releases.App[] { Releases.App.IPTV, Releases.App.TUBE, Releases.App.AUTO }) {
+                Row row = rows.get(app);
+                if (row.release != null && row.release.isNewer(Releases.installed(getPackageManager(), app))) install(app);
+            }
+        });
+        page.addView(downloadAll, UiStyle.actionParams(this));
         Button share = action(getString(R.string.share_app), false);
         share.setOnClickListener(v -> shareApp());
         UiStyle.icon(share, R.drawable.ic_share_action);
@@ -188,6 +214,7 @@ public final class MainActivity extends Activity {
             }
         }));
         ReleaseCache.preferences(this).registerOnSharedPreferenceChangeListener(releaseChanges);
+        downloads.listen(downloadsChanged);
         loadReleaseCache(true);
         if (savedState != null && savedState.containsKey("shizuku_guide")) {
             String target = savedState.getString("shizuku_guide");
@@ -214,10 +241,12 @@ public final class MainActivity extends Activity {
         if (!busy) for (Releases.App app : rows.keySet()) render(app);
         resumePendingLocal();
         loadReleaseCache(false);
+        ui.postDelayed(this::resumeInstallQueue, 700);
     }
 
     @Override protected void onPause() {
         resumed = false;
+        if (downloads.active() != null) downloads.active().covered = true;
         ui.removeCallbacks(guideRefresh);
         super.onPause();
     }
@@ -266,6 +295,9 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         ReleaseCache.preferences(this).unregisterOnSharedPreferenceChangeListener(releaseChanges);
         cancelPreparation = true;
+        downloads.unlisten(downloadsChanged);
+        for (TransferControl call : checkCalls.values()) { call.cancel(); call.close(); }
+        checkCalls.clear(); checks.shutdownNow();
         ui.removeCallbacksAndMessages(null);
         if (shizukuGuide != null) shizukuGuide.dialog.dismiss();
         ShizukuChannel.unlisten();
@@ -319,6 +351,7 @@ public final class MainActivity extends Activity {
         card.addView(row.manual, UiStyle.actionParams(this));
         row.cancel = action(getString(R.string.cancel_download), false);
         row.cancel.setOnClickListener(v -> {
+            if (downloads.occupied(app)) { row.error = null; downloads.cancel(app); return; }
             cancelPreparation = true;
             row.operation = getString(R.string.cancelling);
             row.cancel.setEnabled(false);
@@ -339,6 +372,15 @@ public final class MainActivity extends Activity {
 
     private void primaryAction(Releases.App app) {
         if (busy) return;
+        if (downloads.occupied(app)) {
+            if (queuePaused) {
+                for (UpdateDownloads.Job job : downloads.jobs.values()) if (job.recoveredInstaller) {
+                    InstallManager.clearPending(this, job.app.packageName); job.recoveredInstaller = false;
+                }
+                queuePaused = false; rows.get(app).error = null; drainInstallQueue();
+            }
+            return;
+        }
         if (pendingLocalApp() == app) {
             installLocal(app, localApk(app));
             return;
@@ -357,9 +399,9 @@ public final class MainActivity extends Activity {
         PopupMenu menu = new PopupMenu(this, anchor);
         menu.getMenu().add(R.string.release_details).setOnMenuItemClickListener(item -> { showVersion(app); return true; });
         menu.getMenu().add(R.string.open_releases).setOnMenuItemClickListener(item -> { openReleases(app); return true; });
-        menu.getMenu().add(R.string.choose_apk).setEnabled(!busy)
+        menu.getMenu().add(R.string.choose_apk).setEnabled(!busy && !downloads.hasWork())
                 .setOnMenuItemClickListener(item -> { chooseApk(app); return true; });
-        menu.getMenu().add(R.string.troubleshoot).setEnabled(!busy)
+        menu.getMenu().add(R.string.troubleshoot).setEnabled(!busy && !downloads.hasWork())
                 .setOnMenuItemClickListener(item -> { showHelp(app); return true; });
         menu.show();
     }
@@ -437,7 +479,7 @@ public final class MainActivity extends Activity {
     }
 
     private void runClassicRepair(Releases.App app) {
-        if (busy) return;
+        if (busy || downloads.hasWork()) return;
         setBusy(true);
         rows.get(app).status.setText(R.string.repair_verifying);
         worker.execute(() -> {
@@ -531,7 +573,7 @@ public final class MainActivity extends Activity {
     }
 
     private void runRepair(Releases.App app) {
-        if (busy) return;
+        if (busy || downloads.hasWork()) return;
         setBusy(true);
         rows.get(app).status.setText(R.string.repair_verifying);
         worker.execute(() -> {
@@ -593,6 +635,7 @@ public final class MainActivity extends Activity {
                     applyReleaseSnapshot(app, saved.get(app));
                     render(app);
                 }
+                refreshActions();
                 if (initial && pickingApp == null && pendingLocalApp() == null
                         && !InstallManager.hasPending(this)) checkReleases();
             });
@@ -610,46 +653,64 @@ public final class MainActivity extends Activity {
     }
 
     private void checkReleases() {
-        if (busy) return;
-        setBusy(true);
-        check.setText(R.string.checking);
-        for (Row row : rows.values()) {
-            row.note = null;
-            row.operation = getString(R.string.checking);
-        }
-        for (Releases.App app : rows.keySet()) render(app);
-        worker.execute(() -> {
-            for (Releases.App app : Releases.App.values()) {
+        if (busy || !checkCalls.isEmpty()) return;
+        // Independent requests share a 30-second UI deadline, not a serial three-app wait.
+        for (Releases.App app : Releases.App.values()) {
+            TransferControl call = new TransferControl(30_000);
+            checkCalls.put(app, call);
+            rows.get(app).error = null;
+            ui.postDelayed(() -> completeCheck(app, call, null, getString(R.string.check_timeout)), 30_000);
+            checks.execute(() -> {
+                ReleaseCache.Snapshot snapshot = null;
                 String error = null;
                 try {
-                    SupportEvents.event("release-check",app.packageName,"started","unknown");
-                    Releases.Release release = ReleaseCache.check(this, app, () -> Releases.latest(app)).release;
-                    SupportEvents.event("release-check",app.packageName,release==null?"unavailable":"ready","unknown");
+                    SupportEvents.event("release-check", app.packageName, "started", "unknown");
+                    snapshot = ReleaseCache.check(this, app, () -> {
+                        Releases.Release release = releaseLookup.fetch(app, call);
+                        call.check(); return release;
+                    });
                 } catch (Exception failure) {
-                    SupportEvents.event("release-check",app.packageName,"failed","unknown");
                     String reason = failure.getMessage();
-                    error = getString(reason != null && (reason.contains("HTTP 403") || reason.contains("HTTP 429"))
+                    error = getString(call.stopped() ? R.string.check_timeout
+                            : reason != null && (reason.contains("HTTP 403") || reason.contains("HTTP 429"))
                             ? R.string.github_limited : R.string.github_unavailable);
-                }
-                ReleaseCache.Snapshot result = ReleaseCache.read(this, app);
+                } finally { call.close(); }
+                ReleaseCache.Snapshot result = snapshot;
                 String message = error;
-                runOnUiThread(() -> {
-                    if (isDestroyed()) return;
-                    Row row = rows.get(app);
-                    applyReleaseSnapshot(app, result);
-                    row.error = message;
-                    row.operation = null;
-                    render(app);
-                });
-            }
-            runOnUiThread(() -> {
-                if (!isDestroyed()) {
-                    setBusy(false);
-                    checkPendingInstalls();
-                    resumePendingLocal();
-                }
+                runOnUiThread(() -> completeCheck(app, call, result, message));
             });
-        });
+        }
+        refreshActions();
+        for (Releases.App app : rows.keySet()) render(app);
+    }
+
+    interface ReleaseLookup { Releases.Release fetch(Releases.App app, TransferControl call) throws Exception; }
+    ReleaseLookup releaseLookup = (app, call) -> Releases.latest(app, null, call);
+
+    private void completeCheck(Releases.App app, TransferControl call, ReleaseCache.Snapshot result, String error) {
+        if (isDestroyed() || checkCalls.get(app) != call) return;
+        checkCalls.remove(app);
+        call.cancel(); call.close();
+        applyReleaseSnapshot(app, result);
+        rows.get(app).error = error;
+        SupportEvents.event("release-check", app.packageName, error == null ? "ready" : "failed", "unknown");
+        render(app); refreshActions();
+    }
+
+    private void refreshActions() {
+        if (check == null) return;
+        check.setEnabled(!busy && checkCalls.isEmpty());
+        check.setText(checkCalls.isEmpty() ? R.string.check_updates : R.string.checking);
+        if (settingsButton != null) settingsButton.setEnabled(!busy);
+        if (downloadAll != null) {
+            int offers = 0;
+            for (Releases.App app : rows.keySet()) {
+                Releases.Release release = rows.get(app).release;
+                if (!downloads.occupied(app) && release != null && release.isNewer(Releases.installed(getPackageManager(), app))) offers++;
+            }
+            downloadAll.setVisibility(offers > 1 ? View.VISIBLE : View.GONE);
+            downloadAll.setEnabled(!busy);
+        }
     }
 
     private void install(Releases.App app) {
@@ -673,78 +734,86 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        setBusy(true);
-        beginPreparation(app, release.size);
+        if (downloads.occupied(app)) return;
+        row.error = null;
+        downloads.start(app, release, mode);
+    }
+
+    private void drainInstallQueue() {
+        if (queuePaused || !resumed || isDestroyed() || busy || pickingApp != null || pendingLocalApp() != null
+                || (localConfirmation != null && localConfirmation.isShowing()) || InstallManager.hasPending(this)) return;
+        UpdateDownloads.Job job = downloads.reserveNext();
+        if (job == null) return;
+        // Verify again after restore/waiting; never install an unverified or now-older APK.
         worker.execute(() -> {
-            File apk;
-            try {
-                SupportEvents.event("download",app.packageName,"started",mode.name());
-                apk = Releases.download(app, release, getCacheDir(), getPackageManager());
-                SupportEvents.event("download",app.packageName,"ready",mode.name());
-                if (cancelPreparation || isDestroyed()) {
-                    apk.delete();
-                    runOnUiThread(() -> finishCancelled(app));
-                    return;
-                }
-            } catch (Exception failure) {
-                SupportEvents.event("download",app.packageName,"failed",mode.name());
-                runOnUiThread(() -> {
-                    if (isDestroyed()) return;
-                    setBusy(false);
-                    row.note = failure.getMessage();
-                    row.error = getString(R.string.prepare_failed);
-                    if (cancelPreparation) finishCancelled(app); else render(app);
-                });
-                return;
-            }
-            if (mode == InstallMode.SHIZUKU) {
-                runOnUiThread(() -> {
-                    if (isDestroyed()) { apk.delete(); return; }
-                    if (cancelPreparation) { apk.delete(); finishCancelled(app); return; }
-                    openShizukuInstaller(app, ApkProvider.uri(getPackageName(), app), false);
-                });
-                return;
-            }
-            if (mode == InstallMode.CLASSIC) {
-                runOnUiThread(() -> {
-                    if (isDestroyed()) { apk.delete(); return; }
-                    if (cancelPreparation) { apk.delete(); finishCancelled(app); return; }
-                    setBusy(false);
-                    try {
-                        InstallManager.markPending(this, app.packageName);
-                        row.note = getString(R.string.ready_install);
-                        render(app);
-                        row.status.setText(R.string.ready_install);
-                        startActivity(InstallManager.classicIntent(ApkProvider.uri(getPackageName(), app), app.title));
-                    } catch (RuntimeException unavailable) {
-                        InstallManager.clearPending(this, app.packageName);
-                        row.note = getString(R.string.install_failed);
-                        render(app);
-                    }
-                });
-                return;
-            }
+            boolean valid = false;
+            try { Releases.validate(job.app, job.release, job.file, getPackageManager()); valid = true; }
+            catch (Exception invalid) { }
+            boolean verified = valid;
             runOnUiThread(() -> {
-                if (isDestroyed()) { apk.delete(); return; }
-                if (cancelPreparation) { apk.delete(); finishCancelled(app); return; }
-                preparationGeneration++;
-                row.percent = -1;
-                row.operation = getString(R.string.installing);
-                row.cancel.setVisibility(View.GONE);
-                render(app);
-                worker.execute(() -> {
-                    InstallManager.Outcome outcome = InstallManager.installPrivileged(this, mode, apk, app.packageName,
-                            message -> runOnUiThread(() -> {
-                                if (!isDestroyed()) row.status.setText(message);
-                            }));
-                    runOnUiThread(() -> {
-                        if (isDestroyed()) return;
-                        row.note = outcome.message;
-                        setBusy(false);
-                    });
-                });
+                if (downloads.active() != job) return;
+                if (!verified) {
+                    rows.get(job.app).error = getString(R.string.queue_verify_failed);
+                    downloads.finish(job); return;
+                }
+                if (isDestroyed() || !resumed) { downloads.release(job); return; }
+                launchQueuedInstaller(job);
             });
         });
+    }
+
+    @SuppressWarnings("deprecation")
+    private void launchQueuedInstaller(UpdateDownloads.Job job) {
+        Row row = rows.get(job.app);
+        if ((job.mode == InstallMode.CLASSIC && !getPackageManager().canRequestPackageInstalls())
+                || (job.mode == InstallMode.SHIZUKU && !ShizukuChannel.granted())) {
+            row.error = getString(R.string.queue_permission);
+            // Keep the ready file, but wait for an explicit retry after permission is restored.
+            queuePaused = true; downloads.release(job); return;
+        }
+        job.installerOpened = true;
+        if (job.mode == InstallMode.CLASSIC) {
+            job.launching = false;
+            try {
+                InstallManager.markPending(this, job.app.packageName);
+                Intent intent = InstallManager.classicIntent(ApkProvider.uri(getPackageName(), job.app), job.app.title);
+                intent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+                startActivityForResult(intent, job.requestCode);
+            } catch (RuntimeException failed) {
+                InstallManager.clearPending(this, job.app.packageName);
+                row.error = getString(R.string.install_failed); downloads.finish(job);
+            }
+        } else {
+            // Root is serial too; Shizuku only opens the normal confirmation UI.
+            worker.execute(() -> {
+                InstallManager.Outcome outcome = job.mode == InstallMode.SHIZUKU
+                        ? InstallManager.openShizuku(this, ApkProvider.uri(getPackageName(), job.app), job.app.packageName, false)
+                        : InstallManager.installPrivileged(this, job.mode, job.file, job.app.packageName, message -> { });
+                runOnUiThread(() -> {
+                    downloads.launched(job);
+                    if (downloads.active() != job) return;
+                    row.note = outcome.message;
+                    if (!outcome.pending) {
+                        if (!outcome.ok) row.error = getString(R.string.install_failed);
+                        downloads.finish(job);
+                    } else if (resumed && job.covered) ui.postDelayed(this::resumeInstallQueue, 700);
+                });
+            });
+        }
+    }
+
+    private boolean queuePaused;
+
+    private void resumeInstallQueue() {
+        if (!resumed || isDestroyed()) return;
+        UpdateDownloads.Job job = downloads.active();
+        if (job != null && job.mode != InstallMode.ROOT && job.installerOpened && job.covered && !job.launching) {
+            checkPendingInstalls();
+            // Returning without a package change means cancelled, never successful installation.
+            InstallManager.clearPending(this, job.app.packageName);
+            downloads.finish(job);
+        }
+        if (!queuePaused) drainInstallQueue();
     }
 
     /** Confirmation UI launch is pending; only a real package change triggers the two-field check. */
@@ -872,6 +941,7 @@ public final class MainActivity extends Activity {
             }
         }
         for (Releases.App app : rows.keySet()) render(app);
+        refreshActions();
     }
 
     private void render(Releases.App app) {
@@ -918,10 +988,38 @@ public final class MainActivity extends Activity {
         if (row.percent >= 0) row.progress.setProgress(row.percent);
         row.repair.setVisibility(row.note == null || busy ? View.GONE : View.VISIBLE);
         row.repair.setEnabled(!busy);
+        UpdateDownloads.Job job = downloads.get(app);
+        boolean queued = downloads.occupied(app);
+        if (!busy && checkCalls.containsKey(app) && !queued) {
+            row.status.setText(status + "\n" + getString(R.string.checking));
+            row.progress.setVisibility(View.VISIBLE); row.progress.setIndeterminate(true);
+        }
+        if (job != null && !busy) {
+            int message = job.state == UpdateDownloads.State.DOWNLOADING ? R.string.preparing
+                    : job.state == UpdateDownloads.State.READY ? R.string.queued_install
+                    : job.state == UpdateDownloads.State.INSTALLING ? R.string.installer_waiting
+                    : job.state == UpdateDownloads.State.CANCELLED ? R.string.cancelled : R.string.download_failed_retry;
+            row.status.setText(row.error != null ? row.error : getString(message));
+            boolean downloading = job.state == UpdateDownloads.State.DOWNLOADING;
+            row.progress.setVisibility(downloading ? View.VISIBLE : View.GONE);
+            row.progress.setIndeterminate(job.bytes == 0);
+            if (downloading && job.bytes > 0) {
+                int percent = (int)Math.min(100, job.bytes * 100 / job.release.size);
+                row.progress.setProgress(percent);
+                row.status.setText(percent == 100 ? getString(R.string.verifying) : getString(R.string.downloading, percent));
+            }
+            boolean cancellable = downloading || job.state == UpdateDownloads.State.READY;
+            row.cancel.setVisibility(cancellable ? View.VISIBLE : View.GONE);
+            row.cancel.setEnabled(cancellable);
+            row.install.setEnabled(!queued || (queuePaused && job.state == UpdateDownloads.State.READY));
+            if (queuePaused && job.state == UpdateDownloads.State.READY) row.install.setText(R.string.continue_action);
+        }
+        row.more.setEnabled(!busy && !downloads.hasWork());
+        row.manual.setEnabled(!busy && !downloads.hasWork());
         if (app == Releases.App.AUTO) {
-            row.card.setVisibility(available || row.error != null || row.operation != null || row.note != null || pendingLocal
+            row.card.setVisibility(queued || available || row.error != null || row.operation != null || row.note != null || pendingLocal
                     ? View.VISIBLE : View.GONE);
-            if (!available && !pendingLocal) row.install.setVisibility(View.GONE);
+            if (!queued && !available && !pendingLocal) row.install.setVisibility(View.GONE);
             else row.install.setVisibility(View.VISIBLE);
         }
     }
@@ -1053,7 +1151,7 @@ public final class MainActivity extends Activity {
     }
 
     private void chooseApk(Releases.App app) {
-        if (busy) return;
+        if (busy || downloads.hasWork()) return;
         pickingApp = app;
         Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
         try { startActivityForResult(pick, PICK_APK); }
@@ -1062,6 +1160,15 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request >= 1000 && request < 64000) {
+            UpdateDownloads.Job job = downloads.active();
+            if (job != null && job.mode == InstallMode.CLASSIC && job.requestCode == request) {
+                checkPendingInstalls();
+                InstallManager.clearPending(this, job.app.packageName);
+                downloads.finish(job);
+            }
+            return;
+        }
         if (request != PICK_APK) return;
         Releases.App app = pickingApp;
         pickingApp = null;
@@ -1104,7 +1211,7 @@ public final class MainActivity extends Activity {
     }
 
     private void installLocal(Releases.App app, File verified) {
-        if (busy) return;
+        if (busy || downloads.hasWork()) return;
         getSharedPreferences("ui", MODE_PRIVATE).edit().remove("pending_local").apply();
         InstallMode mode = InstallManager.mode(this);
         if (mode == InstallMode.CLASSIC && !getPackageManager().canRequestPackageInstalls()) {
@@ -1173,7 +1280,7 @@ public final class MainActivity extends Activity {
     }
 
     private void resumePendingLocal() {
-        if (busy || isDestroyed() || (localConfirmation != null && localConfirmation.isShowing())) return;
+        if (busy || downloads.hasWork() || isDestroyed() || (localConfirmation != null && localConfirmation.isShowing())) return;
         Releases.App app = pendingLocalApp();
         if (app == null) return;
         InstallMode mode = InstallManager.mode(this);

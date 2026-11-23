@@ -61,4 +61,10 @@
     <string name="permission_ready">تم السماح. اضغط تثبيت أو إصلاح مرة أخرى.</string>
     <string name="details_error">تفاصيل تقنية</string>
     <string name="last_successful_check">آخر فحص ناجح: %1$s</string>
+    <string name="download_all_updates">تنزيل كل التحديثات</string>
+    <string name="queued_install">تم التنزيل · في انتظار التثبيت</string>
+    <string name="check_timeout">استغرق الفحص وقتًا طويلًا. حاول مجددًا. نتائج الفحص السابقة محفوظة.</string>
+    <string name="download_failed_retry">لم يكتمل التنزيل. اضغط تحديث أو تثبيت للمحاولة مجددًا.</string>
+    <string name="queue_verify_failed">هذا الملف لم يعد مطلوبًا أو تعذر التحقق منه. افحص التحديثات مجددًا.</string>
+    <string name="queue_permission">يلزم السماح بالتثبيت. أعد تفعيل الإذن ثم اضغط متابعة.</string>
 </resources>

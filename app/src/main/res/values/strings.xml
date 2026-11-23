@@ -61,4 +61,10 @@
     <string name="permission_ready">Permission allowed. Tap Install or Repair again.</string>
     <string name="details_error">Technical details</string>
     <string name="last_successful_check">Last successful check: %1$s</string>
+    <string name="download_all_updates">Download all updates</string>
+    <string name="queued_install">Downloaded · waiting to install</string>
+    <string name="check_timeout">The check took too long. Try again. Your last update results are kept.</string>
+    <string name="download_failed_retry">Download could not finish. Tap Update or Install to retry.</string>
+    <string name="queue_verify_failed">This APK is no longer needed or could not be verified. Check for updates again.</string>
+    <string name="queue_permission">Installation permission is needed. Restore permission, then tap Continue.</string>
 </resources>
