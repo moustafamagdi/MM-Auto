@@ -1,0 +1,7 @@
+<resources>
+    <string name="current_install_state">Current installation state</string>
+    <string name="checked_now">Checked: %1$s</string>
+    <string name="previous_attempt">Last recorded attempt</string>
+    <string name="history_explanation">This is a saved record, not a fresh check. For the current result, return to Problem details.</string>
+    <string name="car_not_verified">Appearance and playback on the car screen have not been verified.</string>
+</resources>

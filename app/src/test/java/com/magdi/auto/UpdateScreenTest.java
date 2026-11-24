@@ -61,6 +61,21 @@ public class UpdateScreenTest {
         if(screen!=null)screen.pause().stop().destroy();
         releaseDownloads.countDown(); downloadsWorker.shutdownNow();
     }
+    @Test public void classicRepairRefreshesSavedResultAfterPackageChange() throws Exception {
+        String pkg=Releases.App.TUBE.packageName;
+        android.content.pm.PackageInfo info=new android.content.pm.PackageInfo();info.packageName=pkg;info.lastUpdateTime=100;
+        info.applicationInfo=new android.content.pm.ApplicationInfo();info.applicationInfo.packageName=pkg;
+        Shadows.shadowOf(context.getPackageManager()).installPackage(info);
+        InstallManager.recordAttempt(context,pkg,InstallMode.SHIZUKU,"Old Shizuku failure");
+        RepairState.mark(context,pkg);
+        info.lastUpdateTime=200;Shadows.shadowOf(context.getPackageManager()).installPackage(info);
+        Shadows.shadowOf(context.getPackageManager()).setInstallSourceInfo(pkg,"com.android.vending","com.android.vending");
+        invoke(activity,"checkRepairPending",new Class<?>[]{});
+        String latest=InstallManager.lastAttempt(context,pkg);
+        assertTrue(latest,latest.contains("Method: CLASSIC"));assertTrue(latest,latest.contains("Install metadata: MATCH"));
+        assertFalse(latest.contains("Old Shizuku failure"));assertFalse(latest.contains("pending"));
+        assertFalse(RepairState.takeFinished(context,pkg));
+    }
     @Test public void mainInstallIgnoresOldShizukuPreferenceAndKeepsClassic() throws Exception {
         InstallManager.setMode(context,InstallMode.SHIZUKU);button(Releases.App.TUBE,"install").performClick();
         assertEquals(InstallMode.CLASSIC,queue.get(Releases.App.TUBE).mode);

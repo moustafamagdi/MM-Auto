@@ -531,7 +531,8 @@ public final class MainActivity extends Activity {
         for (Releases.App app : Releases.App.values()) {
             if (!RepairState.takeFinished(this, app.packageName)) continue;
             new File(new File(getCacheDir(), "repairs"), app.packageName + ".apk").delete();
-            boolean ready = InstallIdentity.read(getPackageManager(), app.packageName).matchesExpectedPair(getPackageManager());
+            SupportEvents.event("repair",app.packageName,"finished","CLASSIC");
+            boolean ready = InstallManager.verifyAndFix(this, InstallMode.CLASSIC, app.packageName, message -> {}, "").ok;
             RepairState.needsShizuku(this, app.packageName, !ready);
             rows.get(app).note = getString(R.string.installed_check_car);
             rows.get(app).attributionMatch = ready;
@@ -542,8 +543,14 @@ public final class MainActivity extends Activity {
 
     private void showProblemDetails(Releases.App app) {
         new AlertDialog.Builder(this).setTitle(R.string.problem_details)
-                .setMessage(InstallManager.lastAttempt(this, app.packageName) + "\n\n"
-                        + InstallIdentity.read(getPackageManager(), app.packageName).describe())
+                .setMessage(getString(R.string.current_install_state) + "\n"
+                        + getString(R.string.checked_now, java.text.DateFormat.getDateTimeInstance().format(new java.util.Date()))
+                        + "\n\n" + InstallIdentity.read(getPackageManager(), app.packageName).describe()
+                        + "\n\n" + getString(R.string.car_not_verified))
+                .setNeutralButton(R.string.previous_attempt, (d,w) -> new AlertDialog.Builder(this)
+                        .setTitle(R.string.previous_attempt)
+                        .setMessage(getString(R.string.history_explanation) + "\n\n" + InstallManager.lastAttempt(this, app.packageName))
+                        .setNegativeButton(R.string.close, null).show())
                 .setPositiveButton(R.string.diagnostics, (d,w) -> showDiagnostics())
                 .setNegativeButton(R.string.close, null).show();
     }
@@ -897,7 +904,7 @@ public final class MainActivity extends Activity {
                 row.note = getString(R.string.installer_waiting);
             } else if (pending.status == InstallManager.PendingStatus.FINISHED) {
                 InstallManager.Outcome outcome = InstallManager.verifyAndFix(
-                        this, InstallMode.CLASSIC, app.packageName, message -> { }, "");
+                        this, pending.method, app.packageName, message -> { }, "");
                 RepairState.needsShizuku(this, app.packageName, !outcome.ok);
                 row.note = getString(R.string.installed_check_car);
                 row.attributionMatch = outcome.ok;

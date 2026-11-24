@@ -1,0 +1,7 @@
+<resources>
+    <string name="current_install_state">حالة التثبيت الحالية</string>
+    <string name="checked_now">وقت الفحص: %1$s</string>
+    <string name="previous_attempt">آخر محاولة مسجلة</string>
+    <string name="history_explanation">ده سجل محفوظ، مش فحص جديد. لمعرفة الحالة الحالية ارجع لتفاصيل المشكلة.</string>
+    <string name="car_not_verified">الظهور والتشغيل على شاشة العربية لسه مش متحقق منهم.</string>
+</resources>

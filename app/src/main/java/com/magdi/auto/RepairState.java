@@ -16,6 +16,8 @@ final class RepairState {
                 .putLong(pkg + ".started", System.currentTimeMillis()).commit()) {
             throw new java.io.IOException("Could not save pending repair.");
         }
+        com.magdi.auto.install.InstallManager.recordAttempt(context, pkg, com.magdi.auto.install.InstallMode.CLASSIC, "Classic repair pending; no completion observed yet.");
+        SupportEvents.event("repair",pkg,"pending","CLASSIC");
     }
 
     static void clear(Context context, String pkg) {

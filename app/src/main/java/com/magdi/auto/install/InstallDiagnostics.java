@@ -15,6 +15,7 @@ public final class InstallDiagnostics {
     public static String report(Context context, Map<String, String> apps) {
         PackageManager pm = context.getPackageManager();
         StringBuilder text = new StringBuilder("MM Auto diagnostics\n");
+        text.append("Current state checked at: ").append(java.time.Instant.now()).append("\n");
         text.append("Device: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL).append('\n');
         text.append("Android: ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT)
                 .append(")\n");
@@ -40,9 +41,10 @@ public final class InstallDiagnostics {
                 continue;
             }
             InstallIdentity identity = InstallIdentity.read(pm, app.getValue());
-            text.append("  ").append(identity.describe()).append('\n');
+            text.append("  CURRENT STATE (read from Android now)\n  ").append(identity.describe()).append('\n');
             text.append("  Install metadata pair: ").append(identity.matchesExpectedPair(pm) ? "MATCH" : "MISMATCH").append('\n');
-            text.append("  Last attempt: ").append(InstallManager.lastAttempt(context, app.getValue())).append('\n');
+            text.append("  LAST RECORDED ATTEMPT (historical; may differ from current state)\n")
+                    .append(InstallManager.lastAttempt(context, app.getValue())).append('\n');
             text.append("  Android Auto visibility/playback: NOT_TESTED\n");
         }
         return text.toString();
