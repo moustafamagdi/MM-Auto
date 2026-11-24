@@ -10,7 +10,7 @@ public class SupportFlowTest {
   Context app=RuntimeEnvironment.getApplication();SharedPreferences p=app.getSharedPreferences("mm_support_v1",0);String migratedId=java.util.UUID.randomUUID().toString(),migratedToken=java.util.UUID.randomUUID().toString().replace("-","")+java.util.UUID.randomUUID().toString().replace("-","");p.edit().putString("id",migratedId).putString("token",migratedToken).putBoolean("enabled",false).putInt("consentVersion",2).commit();SupportReporter.init(app);drain();assertFalse("A saved off choice must survive the new default",p.getBoolean("enabled",false));assertEquals(migratedId,p.getString("id",""));assertEquals(migratedToken,p.getString("token",""));
   AtomicInteger sends=new AtomicInteger();AtomicReference<JSONObject> body=new AtomicReference<>();SupportReporter.delivery=b->{sends.incrementAndGet();body.set(new JSONObject(b.toString()));return 200;};
   SupportReporter.record("auto download tube ready classic",System.currentTimeMillis());drain();SupportReporter.automatic(()->{});drain();assertEquals(0,sends.get());
-  SupportActivity a=Robolectric.buildActivity(SupportActivity.class).setup().get();drain();View root=a.getWindow().getDecorView();assertNotNull(button(root,"Copy support ID"));assertNotNull(button(root,"Send report now"));assertNotNull(button(root,"Advanced options"));assertFalse(button(root,"Share a report manually").isShown());button(root,"Advanced options").performClick();assertTrue(button(root,"Share a report manually").isShown());button(root,"Advanced options").performClick();
+  SupportActivity a=Robolectric.buildActivity(SupportActivity.class).setup().get();drain();View root=a.getWindow().getDecorView();assertNotNull(button(root,"Copy support ID"));assertNotNull(button(root,"Send report now"));assertNotNull(button(root,"Show advanced options"));assertFalse(button(root,"Share a report manually").isShown());button(root,"Show advanced options").performClick();assertTrue(button(root,"Share a report manually").isShown());button(root,"Hide advanced options").performClick();assertFalse(button(root,"Share a report manually").isShown());
   button(root,"Send report now").performClick();assertEquals(0,sends.get());android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick();drain();assertEquals(0,sends.get());
   button(root,"Send report now").performClick();org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();drain();drain();assertEquals(1,sends.get());assertFalse(p.getBoolean("enabled",false));assertFalse(body.get().toString().contains("token"));assertFalse(body.get().toString().contains("password"));
   String oldId=p.getString("id","");SupportReporter.changeConsent(true,null);drain();assertTrue(p.getBoolean("enabled",false));p.edit().putLong("lastAttempt",0).putLong("ack",0).commit();SupportReporter.automatic(()->{});drain();assertEquals(2,sends.get());SupportReporter.changeConsent(false,null);drain();SupportReporter.automatic(()->{});drain();assertEquals(2,sends.get());
@@ -19,5 +19,19 @@ public class SupportFlowTest {
   for(int i=0;i<400;i++){SupportReporter.record("auto install iptv failed shizuku",System.currentTimeMillis()+i);if(i%60==0)drain();}drain();SupportReporter.send(s->{});drain();
   SupportReporter.record("auto install tube failed root",System.currentTimeMillis()-2*86400000L);drain();java.io.File historyFile=new java.io.File(app.getNoBackupFilesDir(),"support-v1.json");JSONArray history=new JSONArray(new String(java.nio.file.Files.readAllBytes(historyFile.toPath()),java.nio.charset.StandardCharsets.UTF_8));assertTrue(history.length()<=256);for(int i=0;i<history.length();i++)assertTrue(history.getJSONObject(i).getLong("at")>System.currentTimeMillis()-86400000L);
   assertTrue(new java.io.File(app.getNoBackupFilesDir(),"support-v1.json").length()<65536);a.finish();
+ }
+
+ @Test public void deletingReportsPreservesAutomaticSharingOnSuccessAndFailure() throws Exception {
+  Context app=RuntimeEnvironment.getApplication();SupportReporter.init(app);drain();
+  SharedPreferences p=app.getSharedPreferences("mm_support_v1",0);
+  SupportReporter.changeConsent(true,null);drain();
+  String originalId=p.getString("id","");
+  SupportReporter.delivery=b->503;SupportReporter.erase(null);drain();
+  assertTrue(p.getBoolean("enabled",false));assertEquals(originalId,p.getString("id",""));
+  SupportReporter.delivery=b->200;SupportReporter.erase(null);drain();
+  assertTrue(p.getBoolean("enabled",false));assertNotEquals(originalId,p.getString("id",""));
+  assertEquals("deleted",p.getString("status",""));
+  AtomicInteger uploads=new AtomicInteger();SupportReporter.delivery=b->{if("upload".equals(b.optString("action")))uploads.incrementAndGet();return 200;};
+  p.edit().putLong("lastAttempt",0).commit();SupportReporter.automatic(()->{});drain();assertEquals(1,uploads.get());
  }
 }

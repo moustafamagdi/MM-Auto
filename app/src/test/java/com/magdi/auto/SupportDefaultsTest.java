@@ -132,11 +132,11 @@ public class SupportDefaultsTest {
         assertEquals(0, sent.get()); assertTrue(SupportPreferences.noticePending(prefs));
     }
 
-    @Test public void failedDeletionStillKeepsAutomaticSharingOff() throws Exception {
+    @Test public void failedDeletionKeepsAutomaticSharingEnabled() throws Exception {
         init(); SupportReporter.changeConsent(true, null); drain();
         SupportReporter.delivery = body -> 503;
         SupportReporter.erase(s -> {}); drain();
-        assertFalse(SupportPreferences.initialize(prefs));
+        assertTrue(SupportPreferences.initialize(prefs));
         assertFalse(SupportPreferences.noticePending(prefs));
     }
 }
