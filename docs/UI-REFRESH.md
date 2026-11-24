@@ -15,7 +15,7 @@ Validation: 84 existing JVM/Robolectric tests pass; release/debug builds pass; l
 - Home focuses on MM IPTV and MM Tube, each with one primary action: Install, Update, Open, or the manual download guide when online metadata is unavailable.
 - MM Auto appears as a compact update card when an update is available. Its version and manual import are also available in Settings.
 - Each app's overflow menu contains version details, the official releases page, APK selection and troubleshooting. What’s new opens the matching release page.
-- Settings contains daily notifications, appearance, language and help. Existing Classic, Shizuku and Root choices remain in Advanced settings, with the saved selection preserved.
+- Settings contains daily notifications, appearance, language and help. The current installation flow uses Classic by default and contextual Shizuku setup; Root was removed.
 - Arabic/RTL, English, device language, device appearance and explicit light/dark choices are supported.
 - APK preparation shows progress, verification and cancellation state. Cancellation suppresses installation and deletes the prepared file. The existing network transfer can finish before cleanup; the UI explains this. Cancellation is unavailable after installation begins.
 - Outcome troubleshooting is attached to each card. Manual imports remain available to retry after permission prompts, including activity recreation; granting permission restores the install confirmation.

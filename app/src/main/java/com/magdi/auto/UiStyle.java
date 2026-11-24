@@ -30,6 +30,13 @@ final class UiStyle {
   StateListDrawable states=new StateListDrawable();states.addState(new int[]{-android.R.attr.state_enabled},surface(c,disabledFill,14,border(c)));states.addState(new int[]{android.R.attr.state_focused},surface(c,fill,14,accent));states.addState(new int[]{},surface(c,fill,14,primary?accent:border(c)));
   b.setBackgroundTintList(null);b.setBackground(new RippleDrawable(ColorStateList.valueOf(dark?0x409dbdff:0x302563eb),states,surface(c,Color.WHITE,14,0)));b.setElevation(0);b.setStateListAnimator(null);
  }
+ static void coffee(Button b){
+  Context c=b.getContext();boolean night=dark(c);int ink=night?0xffefd6b7:0xff65432b;
+  b.setTextColor(ink);b.setCompoundDrawableTintList(ColorStateList.valueOf(ink));
+  b.setBackground(new RippleDrawable(ColorStateList.valueOf(night?0x40efd6b7:0x30795548),
+    surface(c,night?0xff342a23:0xfffff4e5,14,night?0xffb89470:0xffb58a62),surface(c,Color.WHITE,14,0)));
+  icon(b,R.drawable.ic_coffee);
+ }
  static void icon(Button b,int resource){android.graphics.drawable.Drawable d=b.getContext().getDrawable(resource).mutate();d.setBounds(0,0,dp(b.getContext(),20),dp(b.getContext(),20));b.setCompoundDrawablesRelative(d,null,null,null);b.setCompoundDrawablePadding(dp(b.getContext(),10));}
  static LinearLayout.LayoutParams actionParams(Context c){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(c,8);return p;}
 }

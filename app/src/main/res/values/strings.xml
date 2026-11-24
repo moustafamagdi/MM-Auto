@@ -37,13 +37,13 @@
     <string name="share">Share</string>
     <string name="close">Close</string>
     <string name="repair_action">Repair installation</string>
-    <string name="help_description">If an installed app does not appear in Android Auto, try repairing its installation. You can also share a diagnostic report.</string>
+    <string name="help_description">If the app is missing from your car screen, try setup with Shizuku. MM Auto keeps your app data and handles the installation. You will still need to check the car screen afterwards.</string>
     <string name="allow_install_title">Allow app installation</string>
     <string name="allow_install_description">Android needs permission to install apps from MM Auto. Allow it on the next screen, then return and tap again.</string>
     <string name="continue_action">Continue</string>
     <string name="cancel">Cancel</string>
     <string name="downloading">Downloading · %1$d%%</string>
-    <string name="preparing">Preparing APK…</string>
+    <string name="preparing">Downloading the app…</string>
     <string name="verifying">Verifying APK…</string>
     <string name="ready_install">Ready to install</string>
     <string name="cancel_download">Cancel preparation</string>
@@ -51,7 +51,7 @@
     <string name="cancelled">Preparation cancelled</string>
     <string name="installing">Installing…</string>
     <string name="prepare_failed">Could not prepare the APK. Try downloading manually.</string>
-    <string name="install_failed">Could not open the Android installer.</string>
+    <string name="install_failed">Installation could not start. Try again, or open Help.</string>
     <string name="manual_instructions">Open the releases page, download the APK from Assets, then return here and choose the file. MM Auto checks it before installation.</string>
     <string name="self_update">MM Auto update available</string>
     <string name="alerts_failed">Could not schedule update notifications. Try again.</string>

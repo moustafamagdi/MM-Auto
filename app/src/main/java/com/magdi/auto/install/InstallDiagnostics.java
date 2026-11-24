@@ -24,7 +24,7 @@ public final class InstallDiagnostics {
             text.append("MM Auto: ").append(pm.getPackageInfo(context.getPackageName(), 0).versionName).append('\n');
             text.append("Android Auto: ").append(pm.getPackageInfo("com.google.android.projection.gearhead", 0).versionName).append('\n');
         } catch (PackageManager.NameNotFoundException missing) { }
-        text.append("Install method: ").append(InstallManager.mode(context)).append('\n');
+        text.append("Default installation: CLASSIC; contextual setup: SHIZUKU\n");
         text.append("Shizuku: ").append(ShizukuChannel.running() ? "running" : "not running")
                 .append(", API ").append(ShizukuChannel.version())
                 .append(", permission ").append(ShizukuChannel.granted() ? "granted" : "not granted").append('\n');

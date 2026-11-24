@@ -42,6 +42,7 @@ public class UpdateScreenTest {
     }
     @Before public void setup() throws Exception {
         context=RuntimeEnvironment.getApplication();
+        PendingSetup.clear(context);
         context.getSharedPreferences("download_queue",0).edit().clear().commit();
         context.getSharedPreferences("install",0).edit().clear().commit();
         context.getSharedPreferences("release_checks_v1",0).edit().clear().commit();
@@ -59,6 +60,28 @@ public class UpdateScreenTest {
     @After public void close() {
         if(screen!=null)screen.pause().stop().destroy();
         releaseDownloads.countDown(); downloadsWorker.shutdownNow();
+    }
+    @Test public void mainInstallIgnoresOldShizukuPreferenceAndKeepsClassic() throws Exception {
+        InstallManager.setMode(context,InstallMode.SHIZUKU);button(Releases.App.TUBE,"install").performClick();
+        assertEquals(InstallMode.CLASSIC,queue.get(Releases.App.TUBE).mode);
+    }
+    @Test public void returningFromCancelledStandaloneInstallDoesNotBlockTheQueue() throws Exception {
+        InstallManager.markPending(context,Releases.App.TUBE.packageName);
+        invoke(activity,"markStandalone",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
+        context.getSharedPreferences("ui",0).edit().putBoolean("standalone_covered",true).commit();
+        invoke(activity,"finishStandaloneReturn",new Class<?>[]{});
+        assertFalse(InstallManager.hasPending(context));
+        assertEquals(activity.getString(R.string.install_incomplete),field(row(Releases.App.TUBE),"note"));
+        assertNull(field(row(Releases.App.TUBE),"attributionMatch"));
+    }
+    @Test public void freshInstallGuideRestoresTargetAfterRecreationWithoutAutoInstall() throws Exception {
+        invoke(activity,"beginSetup",new Class<?>[]{Releases.App.class,PendingSetup.Kind.class},Releases.App.TUBE,PendingSetup.Kind.INSTALL);
+        assertEquals(Releases.App.TUBE,PendingSetup.read(context).app);
+        screen.recreate();activity=screen.get();drain();
+        assertEquals(PendingSetup.Kind.INSTALL,PendingSetup.read(context).kind);
+        assertNotNull(field(activity,"shizukuGuide"));assertFalse(queue.hasWork());
+        ShizukuGuide guide=(ShizukuGuide)field(activity,"shizukuGuide");
+        guide.dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();assertNull(PendingSetup.read(context));
     }
     @Test public void actualButtonsAllowParallelDownloadsAndImmediateIndependentCancel() throws Exception {
         assertTrue(button(Releases.App.IPTV,"install").performClick());

@@ -37,7 +37,7 @@ Welcome to the official **MM apps hub**, maintained by [moustafamagdi](https://g
 - **Use a simpler home screen** with Install, Update or Open, Arabic/English, RTL and light/dark appearance.
 - **Recognize actions at a glance:** Settings, update checks, sharing and contact use outlined, rounded buttons with icons; settings and support screens use the same button styling (0.2.14).
 - **Import an APK manually** from an app’s overflow menu when GitHub checks are unavailable. The same package, signer and version verifier is used.
-- **Choose Classic, Shizuku or Root** in Settings → Advanced settings; the existing choice is preserved.
+- **Install uses Classic by default.** Choose contextual Shizuku setup from Help when needed; no installation-method setting is required.
 - **Repair existing installations** by reinstalling the exact installed version without uninstalling or clearing app data. The repair operation uses a verified local copy, without a GitHub download.
 - **Inspect Diagnostics** for versions, installer attribution and Shizuku availability.
 - **Enable daily update alerts** for scheduled background checks when Android allows them.
@@ -70,11 +70,14 @@ For MM Auto itself, discovery considers compatible previews. For IPTV and Tube, 
 | --- | --- | --- |
 | **Classic** | Allow “Install unknown apps” for MM Auto | Opens Android's installer and requests Play Store attribution. Device behavior varies. |
 | **Shizuku** | [Shizuku](https://github.com/RikkaApps/Shizuku) running and permission granted | Opens the real system installer through a Shizuku UserService. Confirm in Android, then return to verify both source fields. No silent `pm install` fallback. |
-| **Root** | An existing root setup and `su` permission | Uses the root shell installation path. **Untested**; compatibility is not guaranteed. |
 
-In the 0.2.7 preview, Classic and Shizuku completion checks are read-only. A metadata match requires **Installed by: com.android.vending** together with **Requested by: Google Play or a resolved system package installer**. Shell, missing and third-party initiators do not match. Root keeps its separate existing installation path. See [Shizuku preview details](../docs/SHIZUKU-SYSTEM-INSTALLER.md).
+In the 0.2.7 preview, Classic and Shizuku completion checks are read-only. A metadata match requires **Installed by: com.android.vending** together with **Requested by: Google Play or a resolved system package installer**. Shell, missing and third-party initiators do not match. Root execution has been removed; old selections migrate to Classic and queued Root jobs are retired without installing. See [Shizuku preview details](../docs/SHIZUKU-SYSTEM-INSTALLER.md).
 
-## Repair install source
+## Current installation flow
+
+See [Installation usability](INSTALLATION-USABILITY.md) for contextual setup, migration and current validation.
+
+## Historical repair flow (before this change)
 
 **0.2.13:** [Guided setup](../docs/GUIDED-SETUP.md) walks through Shizuku availability,
 startup, permission and repair, in Arabic and English. Xiaomi/POCO/Redmi get the

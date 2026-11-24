@@ -55,6 +55,15 @@ public class UpdateDownloadsTest {
         }
         assertEquals(state, queue.get(app).state);
     }
+    @Test public void savedRootJobIsDroppedWithoutConvertingOrDeletingApk() throws Exception {
+        start(Releases.App.TUBE);gates.get(Releases.App.TUBE).countDown();awaitState(Releases.App.TUBE,UpdateDownloads.State.READY);
+        android.content.SharedPreferences prefs=context.getSharedPreferences("download_queue",0);
+        prefs.edit().putString("ready",prefs.getString("ready","").replace("CLASSIC","ROOT")).commit();
+        com.magdi.auto.install.InstallManager.markPending(context,Releases.App.TUBE.packageName);
+        UpdateDownloads restored=new UpdateDownloads(context,workers,job->{throw new AssertionError("Must not download");});
+        assertFalse(restored.hasWork());assertNull(restored.reserveNext());assertTrue(queue.get(Releases.App.TUBE).file.exists());
+        assertFalse(com.magdi.auto.install.InstallManager.hasPending(context));
+    }
     @Test public void downloadsOverlapButInstallationIsSerialAndAutoIsLast() throws Exception {
         start(Releases.App.AUTO); start(Releases.App.IPTV); start(Releases.App.TUBE);
         assertTrue(started.await(2, TimeUnit.SECONDS)); // all three workers entered before any completed

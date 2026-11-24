@@ -1,0 +1,10 @@
+<resources>
+    <string name="problem_details">تفاصيل المشكلة</string>
+    <string name="complete_setup">إكمال الإعداد</string>
+    <string name="try_shizuku">تجربة التثبيت باستخدام Shizuku</string>
+    <string name="continue_install_app">متابعة تثبيت %1$s</string>
+    <string name="installed_check_car">تم تثبيت التطبيق. جرّب ظهوره على شاشة العربية.</string>
+    <string name="setup_check_update">بنتحقق من أحدث تنزيل. بعد انتهاء الفحص، اضغط متابعة مرة تانية.</string>
+    <string name="install_incomplete">التثبيت ما اكتملش. حاول مرة تانية.</string>
+    <string name="install_cancelled">تم إلغاء التثبيت. تقدر تحاول مرة تانية.</string>
+</resources>

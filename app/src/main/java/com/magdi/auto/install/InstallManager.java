@@ -5,16 +5,9 @@ import com.magdi.auto.SupportEvents;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.Signature;
 import android.net.Uri;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
 
 /** APKs must pass the existing package, pinned-certificate and version verifier before dispatch. */
 public final class InstallManager {
@@ -50,7 +43,12 @@ public final class InstallManager {
 
     public static InstallMode mode(Context context) {
         try { return InstallMode.valueOf(prefs(context).getString(MODE, InstallMode.CLASSIC.name())); }
-        catch (IllegalArgumentException unknown) { return InstallMode.CLASSIC; }
+        catch (IllegalArgumentException unknown) {
+            // Old Root choices are retired, never executed or reused for imported files.
+            prefs(context).edit().putString(MODE, InstallMode.CLASSIC.name()).commit();
+            context.getSharedPreferences("ui", 0).edit().remove("pending_local").commit();
+            return InstallMode.CLASSIC;
+        }
     }
 
     public static void setMode(Context context, InstallMode mode) {
@@ -89,7 +87,8 @@ public final class InstallManager {
             if (!out.activityStarted()) {
                 SupportEvents.event("install",packageName,"failed","SHIZUKU");
                 clearPending(context, packageName);
-                return fail("Could not open the system installer through Shizuku. " + explain(out.text));
+                recordFailure(context, packageName, out.text);
+                return fail("Could not open the system installer through Shizuku.");
             }
             String message = "Android installer opened through Shizuku. Confirm installation, then return to MM Auto. "
                     + "Installed by and Requested by have not been verified yet.";
@@ -104,46 +103,16 @@ public final class InstallManager {
             // Also revoke if a failure occurred before markPending could save the URI.
             try { context.revokeUriPermission(apk, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
             catch (RuntimeException ignored) { }
-            return fail("Could not open the system installer through Shizuku. " + detail(failure));
+            recordFailure(context, packageName, detail(failure));
+            return fail("Could not open the system installer through Shizuku.");
         }
     }
 
-    /** The legacy silent route is now Root-only. Shizuku can never fall back to pm install. */
-    public static Outcome installPrivileged(Context context, InstallMode mode, File apk,
-                                            String packageName, Status status) {
-        SupportEvents.event("install",packageName,"started",mode.name());
-        if (mode != InstallMode.ROOT) return fail("Use the Android installer for Classic or Shizuku.");
-        try (InputStream input = new FileInputStream(apk)) {
-            status.update("Installing as root…");
-            ShellRunner.Output out = ShellRunner.run(PackageTool.asRoot(
-                    PackageTool.installCommand(apk.length(), InstallIdentity.PLAY_STORE)), input, 180);
-            if (!out.installed()) {SupportEvents.event("install",packageName,"failed",mode.name());return fail(explain(out.text));}
-            return verifyAndFix(context, mode, packageName, status, "Installed. ");
-        } catch (Exception failure) { SupportEvents.event("install",packageName,"failed",mode.name());return fail("Install failed. " + detail(failure)); }
-    }
-
-    /** Read-only for Classic/Shizuku. Root retains its explicit privileged repair behavior. */
+    /** Read-only metadata check. Never reinstalls or changes application data. */
     public static Outcome verifyAndFix(Context context, InstallMode mode, String packageName,
                                        Status status, String prefix) {
-        PackageManager pm = context.getPackageManager();
-        InstallIdentity identity = InstallIdentity.read(pm, packageName);
+        InstallIdentity identity = InstallIdentity.read(context.getPackageManager(), packageName);
         if (!identity.installed) return fail(prefix + "The app is not installed.");
-        if (identity.matchesExpectedPair(pm)) return checked(context, packageName, identity, prefix);
-        if (mode == InstallMode.ROOT) {
-            try {
-                status.update("Checking the Root install source…");
-                ShellRunner.run(PackageTool.asRoot(PackageTool.setInstallerCommand(
-                        packageName, InstallIdentity.PLAY_STORE)), null, 30);
-                identity = InstallIdentity.read(pm, packageName);
-                if (!identity.matchesExpectedPair(pm)) {
-                    status.update("Reinstalling the verified cached APK as Root…");
-                    reinstallRoot(context, packageName);
-                    identity = InstallIdentity.read(pm, packageName);
-                }
-            } catch (Exception ignored) {
-                // Report the actual pair, never turn command success into an attribution match.
-            }
-        }
         return checked(context, packageName, identity, prefix);
     }
 
@@ -154,28 +123,6 @@ public final class InstallManager {
                 + identity.describe() + "\nAndroid Auto visibility/playback: NOT_TESTED.";
         prefs(context).edit().putString("last_" + packageName, message).apply();
         return new Outcome(match, message);
-    }
-
-    private static void reinstallRoot(Context context, String packageName) throws Exception {
-        File apk = new File(new File(context.getCacheDir(), "releases"), packageName + ".apk");
-        if (!apk.isFile()) return;
-        PackageManager pm = context.getPackageManager();
-        PackageInfo archive = pm.getPackageArchiveInfo(apk.getAbsolutePath(), PackageManager.GET_SIGNING_CERTIFICATES);
-        PackageInfo current = pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES);
-        if (archive == null || !packageName.equals(archive.packageName)
-                || archive.getLongVersionCode() != current.getLongVersionCode() || !sameSigners(archive, current)) return;
-        try (InputStream input = new FileInputStream(apk)) {
-            ShellRunner.run(PackageTool.asRoot(PackageTool.installCommand(
-                    apk.length(), InstallIdentity.PLAY_STORE)), input, 180);
-        }
-    }
-
-    private static boolean sameSigners(PackageInfo first, PackageInfo second) {
-        if (first.signingInfo == null || second.signingInfo == null) return false;
-        Signature[] a = first.signingInfo.getApkContentsSigners();
-        Signature[] b = second.signingInfo.getApkContentsSigners();
-        return a != null && b != null && a.length > 0
-                && new HashSet<>(Arrays.asList(a)).equals(new HashSet<>(Arrays.asList(b)));
     }
 
     public static void markPending(Context context, String packageName) {
@@ -228,6 +175,10 @@ public final class InstallManager {
     static PendingStatus pendingStatus(long before, long after, long elapsed) {
         if (elapsed < 0 || elapsed > PENDING_TTL_MS) return PendingStatus.EXPIRED;
         return after > 0 && after != before ? PendingStatus.FINISHED : PendingStatus.WAITING;
+    }
+
+    public static void recordFailure(Context context, String packageName, String detail) {
+        prefs(context).edit().putString("last_" + packageName, detail).apply();
     }
 
     public static String lastAttempt(Context context, String packageName) {

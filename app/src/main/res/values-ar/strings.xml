@@ -37,13 +37,13 @@
     <string name="share">مشاركة</string>
     <string name="close">إغلاق</string>
     <string name="repair_action">إصلاح التثبيت</string>
-    <string name="help_description">إذا لم يظهر التطبيق المثبّت في Android Auto، يمكنك تجربة إصلاح التثبيت أو مشاركة تقرير التشخيص.</string>
+    <string name="help_description">لو التطبيق مش ظاهر على شاشة العربية، جرّب الإعداد باستخدام Shizuku. MM Auto هيحافظ على بياناتك ويتولى التثبيت. لازم تجرّب شاشة العربية بعد كده.</string>
     <string name="allow_install_title">السماح بتثبيت التطبيقات</string>
     <string name="allow_install_description">يحتاج أندرويد إذن تثبيت التطبيقات من MM Auto. اسمح به في الشاشة التالية، ثم ارجع واضغط مرة أخرى.</string>
     <string name="continue_action">متابعة</string>
     <string name="cancel">إلغاء</string>
     <string name="downloading">جارٍ التحميل · %1$d%%</string>
-    <string name="preparing">جارٍ تجهيز APK…</string>
+    <string name="preparing">جاري تنزيل التطبيق…</string>
     <string name="verifying">جارٍ التحقق من APK…</string>
     <string name="ready_install">جاهز للتثبيت</string>
     <string name="cancel_download">إلغاء التجهيز</string>
@@ -51,7 +51,7 @@
     <string name="cancelled">تم إلغاء التجهيز</string>
     <string name="installing">جارٍ التثبيت…</string>
     <string name="prepare_failed">تعذّر تجهيز APK. جرّب التحميل اليدوي.</string>
-    <string name="install_failed">تعذّر فتح شاشة تثبيت أندرويد.</string>
+    <string name="install_failed">تعذّر بدء التثبيت. حاول تاني أو افتح المساعدة.</string>
     <string name="manual_instructions">افتح صفحة الإصدارات وحمّل APK من Assets، ثم ارجع واختر الملف. سيتحقق MM Auto منه قبل التثبيت.</string>
     <string name="self_update">يتوفر تحديث لـ MM Auto</string>
     <string name="alerts_failed">تعذّرت جدولة إشعارات التحديث. حاول مجددًا.</string>

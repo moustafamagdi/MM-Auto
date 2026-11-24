@@ -23,12 +23,12 @@ Publish exactly one matching APK per app release:
 
 | Repository | Supported names |
 | --- | --- |
-| MM-Auto | `MM-Auto-<version>.apk` |
+| MM-Auto | `MM-Auto.apk` (preferred), or legacy `MM-Auto-<version>.apk` |
 | MagdiIPTV | `MM-IPTV-<version>.apk` or `Magdi-IPTV-<version>.apk` |
 | MagdiTube | `MM-Tube-<version>.apk` or `Magdi-Tube-<version>.apk` |
 
-Versions use `major.minor.patch`, optionally followed by a hyphenated suffix such as `regional-login` or `rc.1`. Set the asset **label** to `versionCode=<integer>`.
+Versions use `major.minor.patch`, optionally followed by a hyphenated suffix such as `regional-login` or `rc.1`. Leave the asset label empty so GitHub displays the APK filename. Record the build code in the release body as `<!-- mm-version-code: <integer> -->`. MM Auto 0.2.17 and newer read this metadata for canonical APK names.
 
 Create a draft, upload the signed APK, verify name/label/size/digest, then publish. Do not overwrite published APKs or move existing tags. If releasing an unmerged experimental branch, say so in the notes.
 
-Carry forward unverified paths: Root, other ROMs, Classic-first repair, self-update/settings preservation and playback. Diagnostics is not an Android Auto compatibility certification.
+Carry forward unverified paths: Shizuku on physical phones, other ROMs, Classic-first repair, self-update/settings preservation and playback. Diagnostics is not an Android Auto compatibility certification.

@@ -171,6 +171,10 @@ final class UpdateDownloads {
                 try {
                     JSONObject item = data.getJSONObject(i);
                     Releases.App app = Releases.App.valueOf(item.getString("app"));
+                    if ("ROOT".equals(item.optString("mode"))) {
+                        com.magdi.auto.install.InstallManager.clearPending(context, app.packageName);
+                        continue; // Retire, never convert queued Root work into another installation.
+                    }
                     Releases.Release release = Releases.parse(app, item.getJSONObject("release"));
                     File file = new File(new File(context.getCacheDir(), "releases"), app.packageName + ".apk");
                     if (release == null || !file.isFile() || !release.isNewer(Releases.installed(context.getPackageManager(), app))) continue;

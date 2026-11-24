@@ -46,6 +46,8 @@ final class ShizukuGuide {
     private final Activity activity;
     private final Probe probe;
     private final Runnable repair;
+    private final String app;
+    private long lastPermissionRequest = -10000;
     private Stage displayed;
     private boolean displayedBlocked;
 
@@ -53,7 +55,7 @@ final class ShizukuGuide {
         this(activity,app,repair,system(activity),isXiaomi(Build.MANUFACTURER,Build.BRAND));
     }
     ShizukuGuide(Activity activity,String app,Runnable repair,Probe probe,boolean xiaomi) {
-        this.activity=activity;this.probe=probe;this.repair=repair;
+        this.activity=activity;this.probe=probe;this.repair=repair;this.app=app;
         LinearLayout content=new LinearLayout(activity);content.setOrientation(LinearLayout.VERTICAL);
         int pad=(int)(20*activity.getResources().getDisplayMetrics().density);
         content.setPadding(pad,pad,pad,pad);
@@ -61,16 +63,11 @@ final class ShizukuGuide {
         primary=button(content,R.string.guide_install,()->act());
         UiStyle.style(primary,true);
         button(content,R.string.guide_pair_help,()->new AlertDialog.Builder(activity)
-            .setTitle(R.string.guide_pair_help).setMessage(R.string.guide_pair_steps)
+            .setTitle(R.string.guide_pair_help).setMessage(activity.getString(R.string.guide_pair_steps)
+                + (xiaomi ? "\n\n" + activity.getString(R.string.guide_xiaomi_body) : ""))
             .setPositiveButton(R.string.guide_settings,(d,w)->openSettings())
             .setNeutralButton(R.string.guide_official,(d,w)->openUrl("https://shizuku.rikka.app/guide/setup/"))
             .setNegativeButton(R.string.close,null).show());
-        if(xiaomi) {
-            label(content,activity.getString(R.string.guide_xiaomi_title),18);
-            label(content,activity.getString(R.string.guide_xiaomi_body),15);
-            button(content,R.string.guide_settings,()->openSettings());
-        }
-        label(content,activity.getString(R.string.guide_finish_hint),14);
         ScrollView scroll=new ScrollView(activity);scroll.addView(content);
         dialog=new AlertDialog.Builder(activity).setTitle(app==null?activity.getString(R.string.guide_title)
             :activity.getString(R.string.guide_for,app)).setView(scroll).setNegativeButton(R.string.close,null).create();
@@ -88,6 +85,8 @@ final class ShizukuGuide {
             default:title=R.string.guide_ready_title;body=R.string.guide_ready_body;action=repair==null?R.string.close:R.string.guide_repair;
         }
         status.setText(title);description.setText(body);primary.setText(action);
+        if(s==Stage.READY && repair!=null && app!=null)
+            primary.setText(activity.getString(R.string.continue_install_app,app));
     }
     private void act(){
         // Recheck on every tap: permission/service may disappear while the dialog is visible.
@@ -96,7 +95,12 @@ final class ShizukuGuide {
         switch(current){
             case INSTALL:openUrl("https://shizuku.rikka.app/download/");break;
             case START:openManager();break;
-            case PERMISSION:if(probe.blocked())openManager();else probe.request();break;
+            case PERMISSION:
+                if(probe.blocked())openManager();
+                else if(android.os.SystemClock.elapsedRealtime()-lastPermissionRequest>=2000){
+                    lastPermissionRequest=android.os.SystemClock.elapsedRealtime();probe.request();
+                }
+                break;
             case READY:dialog.dismiss();if(repair!=null)repair.run();break;
         }
     }

@@ -15,7 +15,7 @@ Reference reviewed: [KingInstaller ShizukuUtils](https://github.com/fcaronte/Kin
 - Require **Installed by = com.android.vending** and **Requested by = Google Play or an actual system APK installer**. Shell, missing and third-party initiators fail even when the first field matches.
 - Diagnostics reports both fields, the metadata result, build/security patch and the last attempt. Android Auto visibility/playback remains NOT_TESTED.
 
-The release discovery/download, checksum, pinned signer, package/version verifier, private-account rejection and installed-APK repair verification are unchanged from 0.2.6. Sharing and developer contact are retained. Root remains a separate explicit mode and also receives the stricter two-field result.
+The release discovery/download, checksum, pinned signer, package/version verifier, private-account rejection and installed-APK repair verification are unchanged from 0.2.6. Sharing and developer contact are retained. Root execution has since been removed. See INSTALLATION-USABILITY.md for the current flow.
 
 ## Validation scope
 
