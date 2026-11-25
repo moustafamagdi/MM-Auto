@@ -157,6 +157,11 @@ public final class MainActivity extends Activity {
         UiStyle.icon(settingsButton, R.drawable.ic_settings_action);
         header.addView(settingsButton, new LinearLayout.LayoutParams(-2, -2));
         page.addView(header);
+        Button support = action(getString(R.string.support_development), false);
+        support.setOnClickListener(v -> safeStart(new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://ko-fi.com/mostafaabdellatif")).addCategory(Intent.CATEGORY_BROWSABLE)));
+        UiStyle.coffee(support);
+        page.addView(support, UiStyle.actionParams(this));
         TextView subtitle = text(getString(R.string.app_subtitle), 16, mutedColor, false);
         subtitle.setPadding(0, dp(6), 0, dp(24));
         page.addView(subtitle);
@@ -189,11 +194,6 @@ public final class MainActivity extends Activity {
         share.setOnClickListener(v -> shareApp());
         UiStyle.icon(share, R.drawable.ic_share_action);
         page.addView(share, UiStyle.actionParams(this));
-        Button support = action(getString(R.string.support_development), false);
-        support.setOnClickListener(v -> safeStart(new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://ko-fi.com/mostafaabdellatif")).addCategory(Intent.CATEGORY_BROWSABLE)));
-        UiStyle.coffee(support);
-        page.addView(support, UiStyle.actionParams(this));
         Button contact = action(getString(R.string.contact_developer), false);
         contact.setOnClickListener(v -> safeStart(new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://wa.me/966597197475"))));
