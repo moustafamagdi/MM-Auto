@@ -1,0 +1,33 @@
+<resources>
+    <string name="internal_new_attempt">بدء تجربة تثبيت جديدة</string>
+    <string name="internal_licenses">تراخيص المكتبات المفتوحة</string>
+    <string name="internal_adb_title">التثبيت المدمج (تجريبي)</string>
+    <string name="internal_intro">ثبّت باستخدام MM Auto فقط، من غير تطبيق Shizuku أو King Installer. الطريقة التجريبية بتستخدم تصحيح الأخطاء اللاسلكي على نفس الموبايل.</string>
+    <string name="internal_pair_help">١. وصّل الموبايل بشبكة واي فاي، وفعّل خيارات المطوّر ← تصحيح الأخطاء اللاسلكي.\n٢. افتح MM Auto والإعدادات جنب بعض باستخدام تقسيم الشاشة.\n٣. من الإعدادات اختار «إقران الجهاز باستخدام رمز الإقران». سيب النافذة مفتوحة واكتب الرمز المكوّن من ٦ أرقام هنا. سيب المنفذ فاضي عشان نكتشفه تلقائيًا.</string>
+    <string name="internal_settings">فتح إعداد الموبايل</string>
+    <string name="internal_pair_port">منفذ الإقران (اختياري — سيبه فاضي للاكتشاف التلقائي)</string>
+    <string name="internal_pair_code">رمز الإقران المكوّن من ٦ أرقام</string>
+    <string name="internal_pair">إقران MM Auto</string>
+    <string name="internal_pairing">جاري الإقران بالموبايل…</string>
+    <string name="internal_connecting">جاري التأكد من الاتصال…</string>
+    <string name="internal_preparing">جاري تجهيز التطبيق… وتحميله لو محتاج.</string>
+    <string name="internal_installing">جاري تثبيت التطبيق…</string>
+    <string name="internal_wait">استنى النتيجة وسيب MM Auto مفتوح.</string>
+    <string name="internal_connect_help">ارجع لصفحة «تصحيح الأخطاء اللاسلكي» الأساسية. سيب الخانة فاضية واضغط «التأكد من الاتصال». لو الاكتشاف التلقائي ما نجحش، اكتب المنفذ اللي جنب «عنوان IP والمنفذ»؛ ده مختلف عن منفذ الإقران. MM Auto هيتصل بنفس الموبايل فقط.</string>
+    <string name="internal_connection_port">منفذ الاتصال (اختياري — سيبه فاضي للاكتشاف التلقائي)</string>
+    <string name="internal_check_connection">التأكد من الاتصال</string>
+    <string name="internal_connection_step">فحص الاتصال مرة تانية</string>
+    <string name="internal_pair_again">إعادة الإقران</string>
+    <string name="internal_restart_note">ممكن تحتاج تفعّل تصحيح الأخطاء اللاسلكي تاني بعد إعادة تشغيل الموبايل أو تغيير شبكة الواي فاي، ورقم منفذ الاتصال ممكن يتغيّر. مش محتاج تعيد الإقران إلا لو أندرويد نسي MM Auto.</string>
+    <string name="internal_invalid_port">اكتب رقم المنفذ الظاهر في أندرويد (من 1 إلى 65535).</string>
+    <string name="internal_invalid_code">اكتب رمز الـ٦ أرقام ونافذة الإقران لسه مفتوحة.</string>
+    <string name="internal_confirm_repair">جاهز لإعادة تثبيت نفس نسخة %1$s، مع الاحتفاظ ببيانات التطبيق.</string>
+    <string name="internal_confirm_new">جاهز لتحميل وتثبيت %1$s حسب قناة التحديثات اللي اخترتها.</string>
+    <string name="internal_permission_note">الزر اللي تحت بيدي الإذن بالتثبيت من الاتصال اللي قرنته. أندرويد ممكن ما يعرضش تأكيد إضافي. نجاح التثبيت مش تأكيد إن التطبيق ظهر على شاشة العربية.</string>
+    <string name="internal_install_app">تثبيت %1$s</string>
+    <string name="internal_turn_off">تقدر دلوقتي تقفل تصحيح الأخطاء اللاسلكي من إعدادات الموبايل.</string>
+    <string name="internal_failed">الخطوة ما اكتملتش. اتأكد إن تصحيح الأخطاء اللاسلكي شغّال وإن رقم المنفذ الحالي صحيح. لو التثبيت كان بدأ، راجع التطبيق الموجود قبل ما تعيد المحاولة.</string>
+    <string name="internal_interrupted">الخطوة السابقة اتوقفت. مش هنعيد التثبيت تلقائيًا. راجع التطبيق الموجود قبل ما تختار المحاولة تاني.</string>
+    <string name="internal_retry">مراجعة الإعداد والمحاولة تاني</string>
+    <string name="internal_source_unconfirmed">أندرويد أكمل التثبيت، لكن مصدر التثبيت المطلوب ما اتأكدش. جرّب التطبيق على شاشة العربية وابعت التشخيص لو محتاج مساعدة.</string>
+</resources>

@@ -43,7 +43,11 @@ public final class InstallManager {
     private InstallManager() {}
 
     public static InstallMode mode(Context context) {
-        try { return InstallMode.valueOf(prefs(context).getString(MODE, InstallMode.CLASSIC.name())); }
+        try {
+            InstallMode saved = InstallMode.valueOf(prefs(context).getString(MODE, InstallMode.CLASSIC.name()));
+            if (saved == InstallMode.INTERNAL_ADB) throw new IllegalArgumentException("Explicit preview action only");
+            return saved;
+        }
         catch (IllegalArgumentException unknown) {
             // Old Root choices are retired, never executed or reused for imported files.
             prefs(context).edit().putString(MODE, InstallMode.CLASSIC.name()).commit();
@@ -116,7 +120,7 @@ public final class InstallManager {
     }
 
     private static Outcome checked(Context context, InstallMode method, String packageName, InstallIdentity identity, String prefix) {
-        boolean match = identity.matchesExpectedPair(context.getPackageManager());
+        boolean match = matchesRecordedRoute(context, packageName, identity);
         SupportEvents.event("install-check",packageName,match?"match":"mismatch",method == null ? "unknown" : method.name());
         String message = prefix + "Install metadata: " + (match ? "MATCH" : "MISMATCH") + ".\n"
                 + identity.describe() + "\nAndroid Auto visibility/playback: NOT_TESTED.";
@@ -219,6 +223,14 @@ public final class InstallManager {
         String time = at == 0 ? "Unknown (saved by an older version)" : java.time.Instant.ofEpochMilli(at).toString();
         return "Recorded at: " + time + "\nMethod: " + p.getString("last_method_" + packageName, "UNKNOWN")
                 + "\n" + message.replace("\nAndroid Auto visibility/playback: NOT_TESTED.", "");
+    }
+
+    /** A shell initiator is expected only for our explicitly recorded internal ADB route. */
+    public static boolean matchesRecordedRoute(Context context, String packageName, InstallIdentity identity) {
+        boolean internal = InstallMode.INTERNAL_ADB.name().equals(prefs(context).getString("last_method_" + packageName, ""));
+        return identity.matchesExpectedPair(context.getPackageManager())
+                || (internal && identity.installed && identity.viaPlayStore()
+                    && "com.android.shell".equals(identity.initiating));
     }
 
     private static long lastUpdate(PackageManager pm, String packageName) {

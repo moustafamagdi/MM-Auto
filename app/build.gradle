@@ -7,13 +7,14 @@ android {
         applicationId 'com.magdi.auto'
         minSdk 30
         targetSdk 36
-        versionCode 30
-        versionName '0.2.25'
+        versionCode 31
+        versionName '0.2.26-preview'
     }
     buildTypes {
         debug { applicationIdSuffix '.debug' }
     }
     buildFeatures {
+        buildConfig true
         aidl true
     }
     testOptions { unitTests.includeAndroidResources = true }
@@ -23,9 +24,17 @@ android {
     }
 }
 dependencies {
+    implementation project(':local-adb')
+    implementation 'org.conscrypt:conscrypt-android:2.10.0'
+    implementation 'org.bouncycastle:bcpkix-jdk15to18:1.81'
+
     compileOnly 'androidx.annotation:annotation:1.3.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.18.1'
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'
+}
+// Robolectric runs on the desktop JVM; its OpenJDK Conscrypt supplies the native runtime there.
+configurations.matching { it.name.endsWith('UnitTestRuntimeClasspath') }.configureEach {
+    exclude group: 'org.conscrypt', module: 'conscrypt-android'
 }

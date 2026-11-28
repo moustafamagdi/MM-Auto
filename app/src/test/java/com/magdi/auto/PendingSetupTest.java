@@ -36,6 +36,6 @@ public class PendingSetupTest {
         assertEquals(InstallMode.CLASSIC,InstallManager.mode(c));
         assertEquals("CLASSIC",c.getSharedPreferences("install",0).getString("mode",""));
         assertFalse(c.getSharedPreferences("ui",0).contains("pending_local"));
-        assertEquals(2,InstallMode.values().length);
+        assertFalse(java.util.Arrays.stream(InstallMode.values()).anyMatch(mode -> mode.name().equals("ROOT")));
     }
 }

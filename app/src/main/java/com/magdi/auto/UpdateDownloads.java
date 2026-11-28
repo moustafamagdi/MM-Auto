@@ -65,6 +65,7 @@ final class UpdateDownloads {
     boolean hasWork() { for (Releases.App app : jobs.keySet()) if (occupied(app)) return true; return false; }
 
     void start(Releases.App app, Releases.Release release, InstallMode mode) {
+        if (mode == InstallMode.INTERNAL_ADB || InternalInstallOperation.busy()) return;
         if (occupied(app)) return;
         Job job = new Job(app, release, mode, State.DOWNLOADING);
         jobs.put(app, job);
@@ -178,7 +179,9 @@ final class UpdateDownloads {
                     Releases.Release release = Releases.parse(app, item.getJSONObject("release"));
                     File file = new File(new File(context.getCacheDir(), "releases"), app.packageName + ".apk");
                     if (release == null || !file.isFile() || !release.isNewer(Releases.installed(context.getPackageManager(), app))) continue;
-                    Job job = new Job(app, release, InstallMode.valueOf(item.getString("mode")), State.READY);
+                    InstallMode route = InstallMode.valueOf(item.getString("mode"));
+                    if (route == InstallMode.INTERNAL_ADB) continue; // Never auto-replay the explicit preview route.
+                    Job job = new Job(app, release, route, State.READY);
                     job.recoveredInstaller = item.optBoolean("installing");
                     job.file = file; jobs.put(app, job);
                 } catch (Exception invalidEntry) { /* Ignore missing/corrupt entries; revalidate bytes before installation. */ }

@@ -1,0 +1,33 @@
+<resources>
+    <string name="internal_new_attempt">Start another installation</string>
+    <string name="internal_licenses">Open-source licenses</string>
+    <string name="internal_adb_title">Built-in installation (preview)</string>
+    <string name="internal_intro">Install with MM Auto only. No Shizuku or King Installer app is needed. This preview uses Android wireless debugging on this phone.</string>
+    <string name="internal_pair_help">1. Connect your phone to Wi-Fi and enable Developer options → Wireless debugging.\n2. Open MM Auto and Settings side by side using split screen.\n3. In Settings, choose Pair device with pairing code. Keep that window open and enter its six-digit code below. Leave the port empty to find it automatically.</string>
+    <string name="internal_settings">Open phone setup</string>
+    <string name="internal_pair_port">Pairing port (optional — leave empty for automatic)</string>
+    <string name="internal_pair_code">Six-digit pairing code</string>
+    <string name="internal_pair">Pair MM Auto</string>
+    <string name="internal_pairing">Pairing with this phone…</string>
+    <string name="internal_connecting">Checking the connection…</string>
+    <string name="internal_preparing">Preparing the app… Downloading it if needed.</string>
+    <string name="internal_installing">Installing the app…</string>
+    <string name="internal_wait">Please wait for the result. Keep MM Auto open.</string>
+    <string name="internal_connect_help">Return to the main Wireless debugging page. Leave the field empty and tap Check connection. If automatic detection fails, enter the port from “IP address &amp; port”; it is different from the pairing port. MM Auto will connect only to this phone.</string>
+    <string name="internal_connection_port">Connection port (optional — leave empty for automatic)</string>
+    <string name="internal_check_connection">Check connection</string>
+    <string name="internal_connection_step">Check the connection again</string>
+    <string name="internal_pair_again">Pair again</string>
+    <string name="internal_restart_note">You may need to enable wireless debugging again after a restart or a Wi-Fi change. Its connection port can change. Pairing is not needed again unless Android forgets MM Auto.</string>
+    <string name="internal_invalid_port">Enter the port number shown by Android (1–65535).</string>
+    <string name="internal_invalid_code">Enter the six-digit code while the pairing window is open.</string>
+    <string name="internal_confirm_repair">Ready to reinstall the same version of %1$s. Your app data will be kept.</string>
+    <string name="internal_confirm_new">Ready to download and install %1$s using your selected update channel.</string>
+    <string name="internal_permission_note">The button below authorizes this installation through the connection you paired. Android may not show another confirmation. Installation does not confirm that the app appears on your car screen.</string>
+    <string name="internal_install_app">Install %1$s</string>
+    <string name="internal_turn_off">You can now turn off wireless debugging in phone settings.</string>
+    <string name="internal_failed">The step did not complete. Check that wireless debugging is on and use the current port. If installation had started, check the installed app before retrying.</string>
+    <string name="internal_interrupted">The previous step was interrupted. No installation will restart automatically. Check the installed app before choosing to try again.</string>
+    <string name="internal_retry">Review setup and try again</string>
+    <string name="internal_source_unconfirmed">Android completed the installation, but the requested installation source was not confirmed. Check the app on your car screen and share diagnostics if needed.</string>
+</resources>

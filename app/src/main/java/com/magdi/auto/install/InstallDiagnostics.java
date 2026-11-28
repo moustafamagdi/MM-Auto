@@ -42,7 +42,7 @@ public final class InstallDiagnostics {
             }
             InstallIdentity identity = InstallIdentity.read(pm, app.getValue());
             text.append("  CURRENT STATE (read from Android now)\n  ").append(identity.describe()).append('\n');
-            text.append("  Install metadata pair: ").append(identity.matchesExpectedPair(pm) ? "MATCH" : "MISMATCH").append('\n');
+            text.append("  Install metadata (supported recorded route): ").append(InstallManager.matchesRecordedRoute(context, app.getValue(), identity) ? "MATCH" : "MISMATCH").append('\n');
             text.append("  LAST RECORDED ATTEMPT (historical; may differ from current state)\n")
                     .append(InstallManager.lastAttempt(context, app.getValue())).append('\n');
             text.append("  Android Auto visibility/playback: NOT_TESTED\n");

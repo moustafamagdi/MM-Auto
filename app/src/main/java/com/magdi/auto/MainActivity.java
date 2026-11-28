@@ -232,6 +232,11 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        if (InternalInstallOperation.busy()) {
+            startActivity(new Intent(this, InternalInstallActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    .putExtra("app", InternalInstallOperation.activeApp().name()));
+            return;
+        }
         resumed = true;
         ui.removeCallbacks(guideRefresh);
         ui.post(guideRefresh);
@@ -417,6 +422,13 @@ public final class MainActivity extends Activity {
         if (Releases.installed(getPackageManager(), app) != null)
             menu.getMenu().add(R.string.repair_retry_classic).setEnabled(!busy && !downloads.hasWork())
                     .setOnMenuItemClickListener(item -> { repair(app); return true; });
+        if (app != Releases.App.AUTO && BuildConfig.VERSION_NAME.contains("preview"))
+            menu.getMenu().add(R.string.internal_adb_title).setEnabled(!busy && !downloads.hasWork()
+                    && !InstallManager.hasPending(this) && PendingSetup.read(this) == null)
+                    .setOnMenuItemClickListener(item -> {
+                        startActivity(new Intent(this, InternalInstallActivity.class).putExtra("app", app.name()));
+                        return true;
+                    });
         menu.show();
     }
 
@@ -786,6 +798,7 @@ public final class MainActivity extends Activity {
     }
 
     private void drainInstallQueue() {
+        if (InternalInstallOperation.busy()) return;
         if (PendingSetup.read(this) != null || queuePaused || !resumed || isDestroyed() || busy || pickingApp != null || pendingLocalApp() != null
                 || (localConfirmation != null && localConfirmation.isShowing()) || InstallManager.hasPending(this)) return;
         UpdateDownloads.Job job = downloads.reserveNext();
