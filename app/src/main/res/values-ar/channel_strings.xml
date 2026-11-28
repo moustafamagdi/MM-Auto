@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="preview_channel">تجربة التحديثات التجريبية</string>
+<string name="channel_description">عند الإيقاف: النسخ المستقرة للتطبيقات الثلاثة. عند التفعيل: النسخ المستقرة والتجريبية الأحدث، وقد تحتوي على مشاكل. أكمل التنزيلات والتثبيت الجاري قبل تغيير الاختيار.</string>
+<string name="channel_preview_active">التحديثات التجريبية مفعّلة لـMM Auto وMM Tube وMM IPTV.</string>
+<string name="channel_stable_active">التحديثات المستقرة فقط. مغادرة التجربة تحافظ على تطبيقاتك وبياناتك. لو نسختك المثبتة أحدث، انتظر نسخة مستقرة أحدث؛ هذا الاختيار لا يثبّت إصدارًا أقدم.</string>
+<string name="channel_wait_stable">تم اختيار التحديثات المستقرة. نسختك المثبتة أحدث؛ في انتظار نسخة مستقرة أحدث.</string>
+</resources>

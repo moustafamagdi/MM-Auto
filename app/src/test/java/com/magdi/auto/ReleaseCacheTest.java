@@ -56,7 +56,7 @@ public class ReleaseCacheTest {
         return new Releases.Release("0.2." + code, code,
                 new URL("https://github.com/moustafamagdi/" + app.repo + "/releases/download/v0.2."
                         + code + "/" + name + "-0.2." + code + ".apk"),
-                12345, "sha256:" + "a".repeat(64), app == Releases.App.AUTO);
+                12345, "sha256:" + "a".repeat(64), false);
     }
 
     private void save(Releases.App app, int code) throws Exception {

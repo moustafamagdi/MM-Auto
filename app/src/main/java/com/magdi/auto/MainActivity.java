@@ -82,7 +82,7 @@ public final class MainActivity extends Activity {
         }
     };
     private final android.content.SharedPreferences.OnSharedPreferenceChangeListener releaseChanges = (prefs, key) -> {
-        if (!isDestroyed() && key != null && !"sequence".equals(key)) loadReleaseCache(false);
+        if (!isDestroyed() && key != null && java.util.Arrays.stream(Releases.App.values()).anyMatch(a -> a.name().equals(key))) loadReleaseCache(false);
     };
 
     @Override protected void attachBaseContext(Context base) {
@@ -677,11 +677,12 @@ public final class MainActivity extends Activity {
     }
 
     private void loadReleaseCache(boolean initial) {
+        long channelGeneration = ReleaseChannel.generation(this);
         worker.execute(() -> {
             EnumMap<Releases.App, ReleaseCache.Snapshot> saved = new EnumMap<>(Releases.App.class);
             for (Releases.App app : Releases.App.values()) saved.put(app, ReleaseCache.read(this, app));
             runOnUiThread(() -> {
-                if (isDestroyed()) return;
+                if (isDestroyed() || channelGeneration != ReleaseChannel.generation(this)) return;
                 for (Releases.App app : Releases.App.values()) {
                     applyReleaseSnapshot(app, saved.get(app));
                     render(app);
@@ -736,7 +737,7 @@ public final class MainActivity extends Activity {
     }
 
     interface ReleaseLookup { Releases.Release fetch(Releases.App app, TransferControl call) throws Exception; }
-    ReleaseLookup releaseLookup = (app, call) -> Releases.latest(app, null, call);
+    ReleaseLookup releaseLookup = (app, call) -> Releases.latest(app, null, call, ReleaseChannel.preview(this));
 
     private void completeCheck(Releases.App app, TransferControl call, ReleaseCache.Snapshot result, String error) {
         if (isDestroyed() || checkCalls.get(app) != call) return;
@@ -964,7 +965,8 @@ public final class MainActivity extends Activity {
             detail = release == null ? getString(R.string.no_release)
                     : available ? getString(R.string.available_version, release.version)
                     + (release.preview ? " · " + getString(R.string.preview) : "")
-                    : getString(R.string.up_to_date);
+                    : current != null && release != null && !ReleaseChannel.preview(this) && current.getLongVersionCode() > release.versionCode
+                    ? getString(R.string.channel_wait_stable) : getString(R.string.up_to_date);
         }
         if (row.checkedAt > 0) {
             String when = java.text.DateFormat.getDateTimeInstance(
@@ -1023,7 +1025,7 @@ public final class MainActivity extends Activity {
         row.more.setEnabled(!busy && !downloads.hasWork());
         row.manual.setEnabled(!busy && !downloads.hasWork());
         if (app == Releases.App.AUTO) {
-            row.card.setVisibility(queued || available || row.error != null || row.operation != null || row.note != null || pendingLocal
+            row.card.setVisibility(queued || available || (current != null && release != null && !ReleaseChannel.preview(this) && current.getLongVersionCode() > release.versionCode) || row.error != null || row.operation != null || row.note != null || pendingLocal
                     ? View.VISIBLE : View.GONE);
             if (!queued && !available && !pendingLocal) row.install.setVisibility(View.GONE);
             else row.install.setVisibility(View.VISIBLE);
@@ -1059,6 +1061,26 @@ public final class MainActivity extends Activity {
         alerts.addView(text(getString(R.string.daily_description), 14, mutedColor, false));
         content.addView(alerts, UiStyle.actionParams(this));
         refreshAlertsSwitch();
+        Switch previewSwitch = new Switch(this);
+        previewSwitch.setText(R.string.preview_channel);
+        previewSwitch.setTextColor(inkColor); previewSwitch.setMinHeight(dp(52));
+        previewSwitch.setChecked(ReleaseChannel.preview(this));
+        previewSwitch.setEnabled(!busy && !downloads.hasWork() && checkCalls.isEmpty() && !InstallManager.hasPending(this));
+        content.addView(previewSwitch);
+        content.addView(text(getString(R.string.channel_description), 14, mutedColor, false));
+        TextView channelState = text(getString(ReleaseChannel.preview(this) ? R.string.channel_preview_active : R.string.channel_stable_active), 14, mutedColor, false);
+        content.addView(channelState);
+        previewSwitch.setOnCheckedChangeListener((button, enabled) -> {
+            if (busy || downloads.hasWork() || !checkCalls.isEmpty() || InstallManager.hasPending(this)) {
+                button.setChecked(ReleaseChannel.preview(this)); return;
+            }
+            ReleaseChannel.set(this, enabled);
+            for (Row row : rows.values()) {row.release=null; row.checked=false; row.checkedAt=0; row.checkSequence=0; row.error=null; row.note=null;}
+            channelState.setText(enabled ? R.string.channel_preview_active : R.string.channel_stable_active);
+            for (Releases.App app : rows.keySet()) render(app);
+            previewSwitch.setEnabled(false); // Reopen settings after this check completes.
+            checkReleases();
+        });
         Button appearance = action(getString(R.string.appearance), false);
         appearance.setOnClickListener(v -> choosePreference("theme", R.string.appearance,
                 new String[]{getString(R.string.system), getString(R.string.light), getString(R.string.dark)},

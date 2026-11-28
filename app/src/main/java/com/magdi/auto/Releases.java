@@ -96,29 +96,34 @@ final class Releases {
     }
 
     static Release latest(App app, Network network, TransferControl control) throws Exception {
+        return latest(app, network, control, false);
+    }
+
+    static Release latest(App app, Network network, TransferControl control, boolean previews) throws Exception {
         String endpoint = "https://api.github.com/repos/" + OWNER + "/" + app.repo + "/releases";
-        if (app != App.AUTO) {
+        if (!previews) {
             String latest = releaseResponse(endpoint + "/latest", network, control);
             if (latest != null) {
                 Release stable = parse(app, new JSONObject(latest));
-                if (stable != null) return stable;
+                if (stable != null && !stable.preview) return stable;
             }
         }
 
         String history = releaseResponse(endpoint + "?per_page=30", network, control);
-        return history == null ? null : selectRelease(app, new JSONArray(history));
+        return history == null ? null : selectRelease(app, new JSONArray(history), previews);
     }
 
     static Release selectRelease(App app, JSONArray releases) throws Exception {
+        return selectRelease(app, releases, false);
+    }
+
+    static Release selectRelease(App app, JSONArray releases, boolean previews) throws Exception {
         Release selected = null;
         for (int i = 0; i < releases.length(); i++) {
-            JSONObject entry = releases.getJSONObject(i);
-            Release candidate = parse(app, entry);
-            if (candidate == null) continue;
-            if (app != App.AUTO && !candidate.preview) return candidate;
-            if (selected == null || (app == App.AUTO && newerRelease(candidate, selected))) {
-                selected = candidate;
-            }
+            Release candidate = parse(app, releases.getJSONObject(i));
+            if (candidate == null || (!previews && candidate.preview)) continue;
+            if (selected == null || newerRelease(candidate, selected)
+                    || (candidate.versionCode == selected.versionCode && selected.preview && !candidate.preview)) selected = candidate;
         }
         return selected;
     }

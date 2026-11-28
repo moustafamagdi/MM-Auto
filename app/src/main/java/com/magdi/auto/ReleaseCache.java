@@ -13,11 +13,15 @@ final class ReleaseCache {
     interface Lookup { Releases.Release fetch() throws Exception; }
 
     static Snapshot check(Context context, Releases.App app, Lookup lookup) throws Exception {
+        long generation = ReleaseChannel.generation(context);
         long sequence = begin(context);
         Releases.Release release = lookup.fetch();
         if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
         // Failed and interrupted checks never write a successful result or erase the old one.
-        return success(context, app, sequence, release);
+        synchronized (ReleaseCache.class) {
+            if (generation != ReleaseChannel.generation(context)) throw new java.io.IOException("Update channel changed");
+            return success(context, app, sequence, release);
+        }
     }
 
     static final class Snapshot {
@@ -48,13 +52,15 @@ final class ReleaseCache {
             String saved = preferences(context).getString(app.name(), null);
             if (saved == null || saved.length() > 16384) return null;
             JSONObject data = new JSONObject(saved);
+            if (!data.has("channel") || data.getBoolean("channel") != ReleaseChannel.preview(context)) return null;
+            if (data.optLong("generation", -1) != ReleaseChannel.generation(context)) return null;
             long checkedAt = data.getLong("checkedAt"), sequence = data.getLong("sequence");
             if (checkedAt <= 0 || sequence <= 0) return null;
             Releases.Release release = null;
             if (!data.isNull("release")) {
                 // Reuse the normal repository/host/asset/size/checksum validation on every read.
                 release = Releases.parse(app, data.getJSONObject("release"));
-                if (release == null) return null;
+                if (release == null || (!ReleaseChannel.preview(context) && release.preview)) return null;
             }
             return new Snapshot(release, checkedAt, sequence);
         } catch (Exception invalidCache) {
@@ -64,10 +70,12 @@ final class ReleaseCache {
 
     static synchronized Snapshot success(Context context, Releases.App app, long sequence,
                                          Releases.Release release) throws Exception {
+        if (release != null && release.preview && !ReleaseChannel.preview(context))
+            throw new java.io.IOException("Preview not enabled");
         Snapshot previous = read(context, app);
         // An older foreground/background request must not replace a newer successful check.
         if (previous != null && previous.sequence > sequence) return previous;
-        JSONObject data = new JSONObject().put("sequence", sequence)
+        JSONObject data = new JSONObject().put("channel", ReleaseChannel.preview(context)).put("generation", ReleaseChannel.generation(context)).put("sequence", sequence)
                 .put("checkedAt", System.currentTimeMillis()).put("release", JSONObject.NULL);
         if (release != null) {
             String path = release.url.getPath();

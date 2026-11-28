@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="preview_channel">Try preview updates</string>
+<string name="channel_description">Off: stable releases for all three apps. On: stable releases and newer previews, which may contain problems. Finish current downloads and installations before changing this option.</string>
+<string name="channel_preview_active">Preview updates are enabled for MM Auto, MM Tube and MM IPTV.</string>
+<string name="channel_stable_active">Stable updates only. Leaving previews keeps your apps and data. If your installed version is newer, wait for a newer stable release; this does not install an older version.</string>
+<string name="channel_wait_stable">Stable updates selected. Your installed version is newer; waiting for a newer stable release.</string>
+</resources>

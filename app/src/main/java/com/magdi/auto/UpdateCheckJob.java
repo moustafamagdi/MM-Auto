@@ -23,13 +23,15 @@ public final class UpdateCheckJob extends JobService {
         if (network == null) return false;
 
         active = params;
+        long generation = ReleaseChannel.generation(this);
+        boolean previews = ReleaseChannel.preview(this);
         check = worker.submit(() -> {
             EnumMap<Releases.App, Releases.Release> updates = new EnumMap<>(Releases.App.class);
             for (Releases.App app : Releases.App.values()) {
                 if (Thread.currentThread().isInterrupted()) return;
                 if (Releases.installed(getPackageManager(), app) == null) continue;
                 try {
-                    ReleaseCache.Snapshot saved = ReleaseCache.check(this, app, () -> Releases.latest(app, network));
+                    ReleaseCache.Snapshot saved = ReleaseCache.check(this, app, () -> {try (TransferControl call = new TransferControl(30_000)) {return Releases.latest(app, network, call, previews);}});
                     updates.put(app, saved.release);
                 } catch (Exception unavailable) {
                     // The next scheduled check retries this app without blocking the other checks.
@@ -40,7 +42,7 @@ public final class UpdateCheckJob extends JobService {
                 active = null;
                 check = null;
                 try {
-                    updates.forEach((app, release) -> UpdateAlerts.notifyIfNew(this, app, release));
+                    if (generation == ReleaseChannel.generation(this)) updates.forEach((app, release) -> UpdateAlerts.notifyIfNew(this, app, release));
                 } finally {
                     jobFinished(params, false);
                 }
