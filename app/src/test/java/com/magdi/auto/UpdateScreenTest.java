@@ -36,6 +36,34 @@ public class UpdateScreenTest {
     }
     Object row(Releases.App app) throws Exception { return ((Map<?,?>)field(activity,"rows")).get(app); }
     Button button(Releases.App app, String name) throws Exception { return (Button)field(row(app),name); }
+    static Button findButton(android.view.View view, String title) {
+        if(view instanceof Button && title.contentEquals(((Button)view).getText())) return (Button)view;
+        if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){Button found=findButton(group.getChildAt(i),title);if(found!=null)return found;}}
+        return null;
+    }
+    void chooseClassic(){android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.install_classic_option)).performClick();}
+    @Test public void helpNoLongerOffersInstallation() throws Exception {
+        invoke(activity,"showHelp",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
+        android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        assertEquals(activity.getString(R.string.diagnostics),dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).getText());
+        assertNull(findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.try_shizuku)));
+    }
+    @Test public void assistedChoiceOpensBuiltInSetupForSelectedAppWithoutStartingDownload() throws Exception {
+        button(Releases.App.IPTV,"install").performClick();
+        android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.install_assisted_option)).performClick();
+        android.content.Intent started=Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(InternalInstallActivity.class.getName(),started.getComponent().getClassName());
+        assertEquals("IPTV",started.getStringExtra("app"));assertFalse(queue.hasWork());
+    }
+    @Test public void installedCurrentAppShowsInstallBesideOpen() throws Exception {
+        android.content.pm.PackageInfo info=new android.content.pm.PackageInfo();info.packageName=Releases.App.TUBE.packageName;info.versionName="999";info.setLongVersionCode(99999);info.applicationInfo=new android.content.pm.ApplicationInfo();info.applicationInfo.packageName=info.packageName;
+        Shadows.shadowOf(context.getPackageManager()).installPackage(info);
+        invoke(activity,"render",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
+        assertEquals(activity.getString(R.string.open),button(Releases.App.TUBE,"install").getText());
+        assertEquals(android.view.View.VISIBLE,button(Releases.App.TUBE,"installOptions").getVisibility());
+        assertSame(button(Releases.App.TUBE,"install").getParent(),button(Releases.App.TUBE,"installOptions").getParent());
+    }
     void drain() throws Exception {
         ((ExecutorService)field(activity,"worker")).submit(() -> {}).get(5,TimeUnit.SECONDS);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
@@ -77,7 +105,7 @@ public class UpdateScreenTest {
         assertFalse(RepairState.takeFinished(context,pkg));
     }
     @Test public void mainInstallIgnoresOldShizukuPreferenceAndKeepsClassic() throws Exception {
-        InstallManager.setMode(context,InstallMode.SHIZUKU);button(Releases.App.TUBE,"install").performClick();
+        InstallManager.setMode(context,InstallMode.SHIZUKU);button(Releases.App.TUBE,"install").performClick(); chooseClassic();
         assertEquals(InstallMode.CLASSIC,queue.get(Releases.App.TUBE).mode);
     }
     @Test public void returningFromCancelledStandaloneInstallDoesNotBlockTheQueue() throws Exception {
@@ -99,10 +127,10 @@ public class UpdateScreenTest {
         guide.dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();assertNull(PendingSetup.read(context));
     }
     @Test public void actualButtonsAllowParallelDownloadsAndImmediateIndependentCancel() throws Exception {
-        assertTrue(button(Releases.App.IPTV,"install").performClick());
+        assertTrue(button(Releases.App.IPTV,"install").performClick()); chooseClassic();
         assertFalse(button(Releases.App.IPTV,"install").isEnabled());
         assertTrue(button(Releases.App.TUBE,"install").isEnabled());
-        button(Releases.App.TUBE,"install").performClick();
+        button(Releases.App.TUBE,"install").performClick(); chooseClassic();
         assertTrue(queue.occupied(Releases.App.IPTV)); assertTrue(queue.occupied(Releases.App.TUBE));
         button(Releases.App.IPTV,"cancel").performClick();
         assertTrue(button(Releases.App.IPTV,"install").isEnabled());

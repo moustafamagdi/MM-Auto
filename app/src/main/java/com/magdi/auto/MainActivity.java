@@ -103,6 +103,7 @@ public final class MainActivity extends Activity {
     private static final class Row {
         TextView status;
         Button install;
+        Button installOptions;
         Button repair;
         Releases.Release release;
         String error;
@@ -354,7 +355,15 @@ public final class MainActivity extends Activity {
         row.install.setOnClickListener(v -> primaryAction(app));
         LinearLayout.LayoutParams mainParams = new LinearLayout.LayoutParams(-1, -2);
         mainParams.topMargin = dp(8);
-        card.addView(row.install, mainParams);
+        LinearLayout installActions = new LinearLayout(this);
+        installActions.setOrientation(LinearLayout.HORIZONTAL);
+        installActions.addView(row.install, new LinearLayout.LayoutParams(0, -2, 1));
+        row.installOptions = action(getString(R.string.install), false);
+        row.installOptions.setOnClickListener(v -> showInstallOptions(app));
+        LinearLayout.LayoutParams optionsParams = new LinearLayout.LayoutParams(0, -2, 1);
+        optionsParams.setMarginStart(dp(8));
+        installActions.addView(row.installOptions, optionsParams);
+        card.addView(installActions, mainParams);
         row.manual = action(getString(R.string.manual_download), false);
         row.manual.setOnClickListener(v -> showManual(app));
         card.addView(row.manual, UiStyle.actionParams(this));
@@ -368,7 +377,7 @@ public final class MainActivity extends Activity {
         });
         row.cancel.setVisibility(View.GONE);
         card.addView(row.cancel, UiStyle.actionParams(this));
-        // Repair stays reachable through Help, with its existing implementation unchanged.
+        // Help contains diagnostics; installation methods have their own entry point.
         row.repair = action(getString(R.string.troubleshoot), false);
         row.repair.setOnClickListener(v -> showHelp(app));
         row.repair.setVisibility(View.GONE);
@@ -403,8 +412,8 @@ public final class MainActivity extends Activity {
         }
         Row row = rows.get(app);
         PackageInfo current = Releases.installed(getPackageManager(), app);
-        if (row.release != null && row.release.isNewer(current)) { install(app); return; }
-        if (current == null) { checkReleases(); return; }
+        if (row.release != null && row.release.isNewer(current)) { if(app == Releases.App.AUTO || current != null) install(app); else showInstallOptions(app); return; }
+        if (current == null) { showInstallOptions(app); return; }
         if (app == Releases.App.AUTO) { showVersion(app); return; }
         Intent launch = getPackageManager().getLaunchIntentForPackage(app.packageName);
         if (launch != null) safeStart(launch);
@@ -419,16 +428,9 @@ public final class MainActivity extends Activity {
                 .setOnMenuItemClickListener(item -> { chooseApk(app); return true; });
         menu.getMenu().add(R.string.troubleshoot).setEnabled(!busy && !downloads.hasWork())
                 .setOnMenuItemClickListener(item -> { showHelp(app); return true; });
-        if (Releases.installed(getPackageManager(), app) != null)
-            menu.getMenu().add(R.string.repair_retry_classic).setEnabled(!busy && !downloads.hasWork())
-                    .setOnMenuItemClickListener(item -> { repair(app); return true; });
-        if (app != Releases.App.AUTO && BuildConfig.VERSION_NAME.contains("preview"))
-            menu.getMenu().add(R.string.internal_adb_title).setEnabled(!busy && !downloads.hasWork()
-                    && !InstallManager.hasPending(this) && PendingSetup.read(this) == null)
-                    .setOnMenuItemClickListener(item -> {
-                        startActivity(new Intent(this, InternalInstallActivity.class).putExtra("app", app.name()));
-                        return true;
-                    });
+        if (app != Releases.App.AUTO)
+            menu.getMenu().add(R.string.install).setEnabled(!busy && !downloads.hasWork())
+                .setOnMenuItemClickListener(item -> { showInstallOptions(app); return true; });
         menu.show();
     }
 
@@ -473,9 +475,40 @@ public final class MainActivity extends Activity {
         AlertDialog.Builder dialog = new AlertDialog.Builder(this).setTitle(R.string.troubleshoot)
                 .setMessage(description).setNegativeButton(R.string.close, null)
                 .setNeutralButton(R.string.problem_details, (d, w) -> showProblemDetails(app));
-        if (Releases.installed(getPackageManager(), app) != null)
-            dialog.setPositiveButton(R.string.complete_setup, (d, w) -> beginSetup(app, PendingSetup.Kind.REPAIR));
-        else dialog.setPositiveButton(R.string.try_shizuku, (d,w) -> beginSetup(app, PendingSetup.Kind.INSTALL));
+        dialog.setPositiveButton(R.string.diagnostics, (d,w) -> showDiagnostics());
+        dialog.show();
+    }
+
+    private void showInstallOptions(Releases.App app) {
+        if (busy || downloads.occupied(app) || InternalInstallOperation.busy()
+                || PendingSetup.read(this) != null) {
+            Toast.makeText(this, R.string.internal_wait, Toast.LENGTH_SHORT).show(); return;
+        }
+        LinearLayout content = column();
+        content.setPadding(dp(20), dp(8), dp(20), dp(12));
+        content.addView(text(getString(R.string.install_methods_description), 15, mutedColor, false));
+        Button classic = action(getString(R.string.install_classic_option), true);
+        content.addView(classic, UiStyle.actionParams(this));
+        Button assisted = action(getString(R.string.install_assisted_option), false);
+        assisted.setEnabled(!downloads.hasWork() && !InstallManager.hasPending(this));
+        if (app != Releases.App.AUTO && BuildConfig.VERSION_NAME.contains("preview")) {
+            content.addView(assisted, UiStyle.actionParams(this));
+            content.addView(text(getString(R.string.install_assisted_description), 14, mutedColor, false));
+        }
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(getString(R.string.install) + " · " + app.title)
+                .setView(content).setNegativeButton(R.string.cancel, null).create();
+        classic.setOnClickListener(v -> {
+            dialog.dismiss();
+            Row row = rows.get(app);
+            PackageInfo current = Releases.installed(getPackageManager(), app);
+            if (row.release != null && row.release.isNewer(current)) install(app, InstallMode.CLASSIC);
+            else if (current != null) repair(app);
+            else checkReleases();
+        });
+        assisted.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(this, InternalInstallActivity.class).putExtra("app", app.name()).putExtra("new_request", true));
+        });
         dialog.show();
     }
 
@@ -999,8 +1032,10 @@ public final class MainActivity extends Activity {
         row.install.setEnabled(!busy);
         row.more.setEnabled(!busy);
         boolean pendingLocal = pendingLocalApp() == app;
+        row.installOptions.setVisibility(app != Releases.App.AUTO && current != null && !available && !pendingLocal && !downloads.occupied(app) ? View.VISIBLE : View.GONE);
+        row.installOptions.setEnabled(!busy && !downloads.hasWork() && !InternalInstallOperation.busy() && !InstallManager.hasPending(this) && PendingSetup.read(this) == null);
         row.install.setText(pendingLocal ? R.string.ready_install
-                : current == null ? (available ? R.string.install : R.string.download)
+                : current == null ? R.string.install
                 : available ? R.string.update : R.string.open);
         row.manual.setVisibility(row.error == null || (current == null && !available) ? View.GONE : View.VISIBLE);
         row.manual.setEnabled(!busy);
@@ -1118,9 +1153,7 @@ public final class MainActivity extends Activity {
             if(help.getParent()!=null)((android.view.ViewGroup)help.getParent()).removeView(help);
             panel.addView(self, UiStyle.actionParams(this));
             panel.addView(help, UiStyle.actionParams(this));
-            Button guide = action(getString(R.string.guide_title), false);
-            guide.setOnClickListener(clicked -> showShizukuGuide(null));
-            panel.addView(guide, UiStyle.actionParams(this));
+            // Legacy Shizuku implementation is retained for existing pending operations only.
             ScrollView advancedScroll=new ScrollView(this);advancedScroll.addView(panel);
             new AlertDialog.Builder(this).setTitle(R.string.advanced).setView(advancedScroll)
                     .setNegativeButton(R.string.close, null).show();

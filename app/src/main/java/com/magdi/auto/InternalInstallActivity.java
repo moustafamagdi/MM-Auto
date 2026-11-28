@@ -50,6 +50,9 @@ public final class InternalInstallActivity extends Activity {
             stopService(new Intent(this, InternalPairingService.class));
         manualPairing = saved != null && saved.getBoolean("manual_pairing", false);
         InternalInstallOperation.select(this, app);
+        if (saved == null && getIntent().getBooleanExtra("new_request", false)
+                && !InternalInstallOperation.busy() && "finished".equals(InternalInstallOperation.state(this)))
+            InternalInstallOperation.prefs(this).edit().putString("state", "setup").commit();
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);
         scroll.setBackgroundColor(UiStyle.dark(this) ? 0xff0b1220 : 0xfff3f6fc);
         body = new LinearLayout(this); body.setOrientation(LinearLayout.VERTICAL);

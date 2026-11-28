@@ -44,6 +44,14 @@ public class InternalInstallScreenTest {
             assertFalse(InternalInstallOperation.busy());
         }
     }
+    @Test public void explicitNewRequestKeepsPairingButDoesNotReuseSuccessOrAutoInstall() {
+        Context c=RuntimeEnvironment.getApplication();
+        InternalInstallOperation.prefs(c).edit().clear().putString("app","TUBE").putString("state","finished").putBoolean("paired",true).commit();
+        try(org.robolectric.android.controller.ActivityController<InternalInstallActivity> controller=Robolectric.buildActivity(InternalInstallActivity.class,new Intent(c,InternalInstallActivity.class).putExtra("app","TUBE").putExtra("new_request",true)).setup()) {
+            assertEquals("setup",InternalInstallOperation.state(c));assertTrue(InternalInstallOperation.prefs(c).getBoolean("paired",false));assertFalse(InternalInstallOperation.busy());
+            controller.recreate();assertFalse(InternalInstallOperation.busy());
+        }
+    }
     private static boolean clickManual(View view,String label) {
         if(view instanceof android.widget.Button && label.contentEquals(((android.widget.Button)view).getText())) { view.performClick(); return true; }
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)if(clickManual(((ViewGroup)view).getChildAt(i),label))return true;
