@@ -15,6 +15,11 @@ import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35,application=Application.class)
 public class InternalInstallScreenTest {
+    private InternalInstallOperation.ConnectionProbe original;
+    @org.junit.Before public void mockConnection(){original=InternalInstallOperation.connectionProbe;InternalInstallOperation.connectionProbe=(c,p)->4567;}
+    @org.junit.After public void restoreConnection() throws Exception {awaitProbe();InternalInstallOperation.connectionProbe=original;}
+    static void awaitProbe() throws Exception {for(int i=0;i<100&&InternalInstallOperation.busy();i++)Thread.sleep(10);assertFalse(InternalInstallOperation.busy());}
+
     @Test public void bothLanguagesAndThemesKeepCredentialsOutOfSavedState() {
         Context c = RuntimeEnvironment.getApplication();
         for (String language : new String[]{"ar","en"}) for (String theme : new String[]{"dark","light"}) {
@@ -44,12 +49,24 @@ public class InternalInstallScreenTest {
             assertFalse(InternalInstallOperation.busy());
         }
     }
-    @Test public void explicitNewRequestKeepsPairingButDoesNotReuseSuccessOrAutoInstall() {
+    @Test public void explicitNewRequestKeepsPairingButDoesNotReuseSuccessOrAutoInstall() throws Exception {
         Context c=RuntimeEnvironment.getApplication();
         InternalInstallOperation.prefs(c).edit().clear().putString("app","TUBE").putString("state","finished").putBoolean("paired",true).commit();
         try(org.robolectric.android.controller.ActivityController<InternalInstallActivity> controller=Robolectric.buildActivity(InternalInstallActivity.class,new Intent(c,InternalInstallActivity.class).putExtra("app","TUBE").putExtra("new_request",true)).setup()) {
-            assertEquals("setup",InternalInstallOperation.state(c));assertTrue(InternalInstallOperation.prefs(c).getBoolean("paired",false));assertFalse(InternalInstallOperation.busy());
-            controller.recreate();assertFalse(InternalInstallOperation.busy());
+            awaitProbe();assertEquals("ready",InternalInstallOperation.state(c));assertTrue(InternalInstallOperation.prefs(c).getBoolean("paired",false));assertFalse(InternalInstallOperation.busy());
+            controller.recreate();awaitProbe();assertFalse(InternalInstallOperation.busy());
+        }
+    }
+    @Test public void revokedPairingClearsReadinessButNetworkFailureDoesNotErasePairing() throws Exception {
+        Context c=RuntimeEnvironment.getApplication();
+        for(boolean revoked:new boolean[]{true,false}) {
+            InternalInstallOperation.prefs(c).edit().clear().putString("app","TUBE").putString("state","ready").putBoolean("paired",true).putInt("connect_port",1234).commit();
+            InternalInstallOperation.connectionProbe=(ctx,port)->{if(revoked)throw new io.github.muntashirakon.adb.AdbAuthenticationFailedException();throw new java.io.IOException("network unavailable");};
+            InternalInstallOperation.verifyOnResume(c,Releases.App.TUBE);awaitProbe();
+            assertEquals(revoked?"pair_required":"connection_unavailable",InternalInstallOperation.state(c));
+            assertEquals(!revoked,InternalInstallOperation.prefs(c).getBoolean("paired",false));
+            assertFalse(InternalInstallOperation.prefs(c).contains("connect_port"));
+            assertFalse(InternalInstallOperation.busy());
         }
     }
     private static boolean clickManual(View view,String label) {

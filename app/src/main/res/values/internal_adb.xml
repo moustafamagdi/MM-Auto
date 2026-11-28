@@ -13,7 +13,7 @@
     <string name="internal_preparing">Preparing the app… Downloading it if needed.</string>
     <string name="internal_installing">Installing the app…</string>
     <string name="internal_wait">Please wait for the result. Keep MM Auto open.</string>
-    <string name="internal_connect_help">Your phone is paired. Keep Wireless debugging enabled, then continue.</string>
+    <string name="internal_connect_help">A previous pairing is saved. MM Auto will verify the connection before installation. Keep Wireless debugging enabled.</string>
     <string name="internal_connection_port">Connection port (optional — leave empty for automatic)</string>
     <string name="internal_check_connection">Continue</string>
     <string name="internal_connection_step">Check the connection again</string>
@@ -30,4 +30,6 @@
     <string name="internal_interrupted">The previous step was interrupted. No installation will restart automatically. Check the installed app before choosing to try again.</string>
     <string name="internal_retry">Review setup and try again</string>
     <string name="internal_source_unconfirmed">Android completed the installation, but the requested installation source was not confirmed. Check the app on your car screen and share diagnostics if needed.</string>
+<string name="internal_pair_required">Android rejected the saved pairing. Pair this phone again to continue.</string>
+<string name="internal_connection_unavailable">The wireless connection could not be verified. Check Wi-Fi and Wireless debugging. If you removed MM Auto from paired devices, choose Pair again.</string>
 </resources>

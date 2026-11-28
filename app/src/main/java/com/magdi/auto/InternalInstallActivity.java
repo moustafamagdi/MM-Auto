@@ -53,7 +53,8 @@ public final class InternalInstallActivity extends Activity {
         if (saved == null && getIntent().getBooleanExtra("new_request", false) && !InternalInstallOperation.busy())
             InternalInstallOperation.prefs(this).edit().putBoolean("update_requested", getIntent().getBooleanExtra("update_requested", false)).commit();
         if (saved == null && getIntent().getBooleanExtra("new_request", false)
-                && !InternalInstallOperation.busy() && "finished".equals(InternalInstallOperation.state(this)))
+                && !InternalInstallOperation.busy() && ("finished".equals(InternalInstallOperation.state(this))
+                    || ("failed".equals(InternalInstallOperation.state(this)) && InternalInstallOperation.prefs(this).getString("detail", "").startsWith("connecting:"))))
             InternalInstallOperation.prefs(this).edit().putString("state", "setup").commit();
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);
         scroll.setBackgroundColor(UiStyle.dark(this) ? 0xff0b1220 : 0xfff3f6fc);
@@ -68,7 +69,7 @@ public final class InternalInstallActivity extends Activity {
         render();
         shown = InternalInstallOperation.state(this) + InternalInstallOperation.busy();
     }
-    @Override protected void onResume() { super.onResume(); visible = true; ui.post(refresh); }
+    @Override protected void onResume() { super.onResume(); visible = true; InternalInstallOperation.verifyOnResume(this, app); ui.post(refresh); }
     @Override protected void onPause() { visible = false; ui.removeCallbacks(refresh); super.onPause(); }
     @Override protected void onSaveInstanceState(Bundle out) {
         out.putBoolean("manual_pairing", manualPairing); super.onSaveInstanceState(out);
@@ -95,6 +96,12 @@ public final class InternalInstallActivity extends Activity {
             text(getString(R.string.internal_turn_off), 16);
             button(R.string.close, true, this::finish);
             button(R.string.problem_details, false, this::completionDetails); return;
+        }
+        if (state.equals("pair_required") || state.equals("connection_unavailable")) {
+            text(getString(state.equals("pair_required") ? R.string.internal_pair_required : R.string.internal_connection_unavailable),17);
+            if (state.equals("connection_unavailable")) button(R.string.internal_check_connection,true,()->{InternalInstallOperation.connect(this,app,0);shown="";});
+            button(R.string.internal_pair_again,state.equals("pair_required"),()->change("pair_again"));
+            settings(); details(); button(R.string.close,false,this::finish); return;
         }
         if (state.equals("failed") || state.equals("interrupted")) {
             text(getString(state.equals("interrupted") ? R.string.internal_interrupted : R.string.internal_failed), 17);

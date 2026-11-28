@@ -13,7 +13,7 @@
     <string name="internal_preparing">جاري تجهيز التطبيق… وتحميله لو محتاج.</string>
     <string name="internal_installing">جاري تثبيت التطبيق…</string>
     <string name="internal_wait">استنى النتيجة وسيب MM Auto مفتوح.</string>
-    <string name="internal_connect_help">تم ربط الهاتف. اترك تصحيح الأخطاء اللاسلكي مفعّلًا، ثم اضغط متابعة.</string>
+    <string name="internal_connect_help">فيه اقتران سابق محفوظ. MM Auto هيتحقق من الاتصال قبل التثبيت. خلّي تصحيح الأخطاء اللاسلكي شغال.</string>
     <string name="internal_connection_port">منفذ الاتصال (اختياري — سيبه فاضي للاكتشاف التلقائي)</string>
     <string name="internal_check_connection">متابعة</string>
     <string name="internal_connection_step">فحص الاتصال مرة تانية</string>
@@ -30,4 +30,6 @@
     <string name="internal_interrupted">الخطوة السابقة اتوقفت. مش هنعيد التثبيت تلقائيًا. راجع التطبيق الموجود قبل ما تختار المحاولة تاني.</string>
     <string name="internal_retry">مراجعة الإعداد والمحاولة تاني</string>
     <string name="internal_source_unconfirmed">أندرويد أكمل التثبيت، لكن مصدر التثبيت المطلوب ما اتأكدش. جرّب التطبيق على شاشة العربية وابعت التشخيص لو محتاج مساعدة.</string>
+<string name="internal_pair_required">أندرويد رفض الاقتران المحفوظ. اعمل اقتران من جديد للمتابعة.</string>
+<string name="internal_connection_unavailable">تعذر التأكد من الاتصال اللاسلكي. راجع الواي فاي وتصحيح الأخطاء اللاسلكي. لو حذفت MM Auto من الأجهزة المقترنة، اختار اقتران من جديد.</string>
 </resources>

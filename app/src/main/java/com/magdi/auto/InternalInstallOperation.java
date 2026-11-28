@@ -45,7 +45,11 @@ final class InternalInstallOperation {
                 // No ports, pairing codes, paths, key material, shell output or stack traces in diagnostics.
                 String detail = failure instanceof InstallFailure ? failure.getMessage() : failure.getClass().getSimpleName();
                 if (!phase.equals("preparing")) SupportEvents.event("permission", app.packageName, "unavailable", "adb");
-                prefs(c).edit().putString("state", cancelled ? "interrupted" : "failed").putString("detail", phase + ": " + detail).commit();
+                String failedState = cancelled ? "interrupted" : (phase.equals("connecting") || failure instanceof ConnectionFailure) ? connectionFailureState(failure) : "failed";
+                SharedPreferences.Editor edit=prefs(c).edit().putString("state",failedState).putString("detail",phase+": "+detail);
+                if (phase.equals("connecting") || failure instanceof ConnectionFailure) edit.remove("connect_port");
+                if (failedState.equals("pair_required")) edit.putBoolean("paired",false);
+                edit.commit();
                 if (phase.equals("preparing")) {
                     InstallManager.recordAttempt(c, app.packageName, InstallMode.INTERNAL_ADB, "Installation not confirmed: " + detail);
                     SupportEvents.event("install", app.packageName, "failed", "adb");
@@ -79,15 +83,33 @@ final class InternalInstallOperation {
             }
         });
     }
+    interface ConnectionProbe { int verify(Context context, int port) throws Exception; }
+    static ConnectionProbe connectionProbe = InternalInstallOperation::verifyConnection;
+    private static int verifyConnection(Context context, int port) throws Exception {
+        try (InternalAdbClient client = new InternalAdbClient(context)) {
+            int actual = port == 0 ? InternalAdbClient.discover(context, false) : port;
+            if (!client.connectLocal(actual)) throw new IOException("LOCAL_CONNECTION_FAILED");
+            return actual;
+        }
+    }
+    static String connectionFailureState(Throwable failure) {
+        for (int depth=0; failure!=null && depth<8; depth++,failure=failure.getCause())
+            if (failure instanceof io.github.muntashirakon.adb.AdbPairingRequiredException
+                    || failure instanceof io.github.muntashirakon.adb.AdbAuthenticationFailedException)
+                return "pair_required";
+        return "connection_unavailable";
+    }
+    static void verifyOnResume(Context context, Releases.App app) {
+        String phase=state(context);
+        if (!busy() && prefs(context).getBoolean("paired",false)
+                && (phase.equals("setup") || phase.equals("paired") || phase.equals("ready"))) connect(context,app,0);
+    }
     static void connect(Context context, Releases.App app, int port) {
         if (port != 0) InternalAdbPolicy.port(Integer.toString(port));
         start(context, app, "connecting", c -> {
-            try (InternalAdbClient client = new InternalAdbClient(c)) {
-                int actualPort = port == 0 ? InternalAdbClient.discover(c, false) : port;
-                if (!client.connectLocal(actualPort)) throw new IOException();
-                checkCancelled();
-                prefs(c).edit().putInt("connect_port", actualPort).putString("state", "ready").commit();
-            }
+            int actualPort = connectionProbe.verify(c, port);
+            checkCancelled();
+            prefs(c).edit().putBoolean("paired",true).putInt("connect_port", actualPort).putString("state", "ready").commit();
         });
     }
     static void install(Context context, Releases.App app) {
@@ -100,8 +122,7 @@ final class InternalInstallOperation {
             boolean repair = !updateRequested && Releases.installed(c.getPackageManager(), app) != null;
             try (InternalAdbClient client = new InternalAdbClient(c)) {
                 // Fail before downloading if the helper has stopped / its dynamic port changed.
-                int port = InternalAdbClient.discover(c, false);
-                if (!client.connectLocal(port)) throw new IOException("LOCAL_CONNECTION_FAILED");
+                int port = connectForInstall(client, c);
                 if (repair) apk = RepairApk.prepare(c, app);
                 else {
                     SupportEvents.event("download", app.packageName, "started", "adb");
@@ -117,8 +138,7 @@ final class InternalInstallOperation {
                 }
                 // Reconnect after preparation; no background persistent ADB service is needed.
                 client.disconnect();
-                port = InternalAdbClient.discover(c, false);
-                if (!client.connectLocal(port)) throw new IOException("LOCAL_CONNECTION_FAILED");
+                port = connectForInstall(client, c);
                 PackageInfo archive = c.getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
                 if (archive == null) throw new IOException();
                 long expectedVersion = archive.getLongVersionCode();
@@ -145,6 +165,11 @@ final class InternalInstallOperation {
     private static long updateTime(Context c, Releases.App app) {
         PackageInfo info = Releases.installed(c.getPackageManager(), app); return info == null ? 0 : info.lastUpdateTime;
     }
+    private static int connectForInstall(InternalAdbClient client, Context context) throws ConnectionFailure {
+        try {int port=InternalAdbClient.discover(context,false);if(!client.connectLocal(port))throw new IOException("LOCAL_CONNECTION_FAILED");return port;}
+        catch(Exception failure){throw new ConnectionFailure(failure);}
+    }
+    private static final class ConnectionFailure extends IOException { ConnectionFailure(Exception cause){super(cause);} }
     private static final class InstallFailure extends IOException { InstallFailure(String code) { super(code); } }
     private InternalInstallOperation() {}
 }
