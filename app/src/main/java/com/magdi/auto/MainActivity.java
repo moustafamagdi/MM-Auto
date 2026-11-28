@@ -104,6 +104,7 @@ public final class MainActivity extends Activity {
         TextView status;
         Button install;
         Button installOptions;
+        Button openInstalled;
         Button repair;
         Releases.Release release;
         String error;
@@ -363,6 +364,14 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams optionsParams = new LinearLayout.LayoutParams(0, -2, 1);
         optionsParams.setMarginStart(dp(8));
         installActions.addView(row.installOptions, optionsParams);
+        row.openInstalled = action(getString(R.string.open), false);
+        row.openInstalled.setOnClickListener(v -> {
+            Intent launch = getPackageManager().getLaunchIntentForPackage(app.packageName);
+            if (launch != null) safeStart(launch); else Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show();
+        });
+        LinearLayout.LayoutParams openParams = new LinearLayout.LayoutParams(0, -2, 1);
+        openParams.setMarginStart(dp(8));
+        installActions.addView(row.openInstalled, openParams);
         card.addView(installActions, mainParams);
         row.manual = action(getString(R.string.manual_download), false);
         row.manual.setOnClickListener(v -> showManual(app));
@@ -412,7 +421,7 @@ public final class MainActivity extends Activity {
         }
         Row row = rows.get(app);
         PackageInfo current = Releases.installed(getPackageManager(), app);
-        if (row.release != null && row.release.isNewer(current)) { if(app == Releases.App.AUTO || current != null) install(app); else showInstallOptions(app); return; }
+        if (row.release != null && row.release.isNewer(current)) { if(app == Releases.App.AUTO) install(app); else showInstallOptions(app, current != null); return; }
         if (current == null) { showInstallOptions(app); return; }
         if (app == Releases.App.AUTO) { showVersion(app); return; }
         Intent launch = getPackageManager().getLaunchIntentForPackage(app.packageName);
@@ -429,7 +438,7 @@ public final class MainActivity extends Activity {
         menu.getMenu().add(R.string.troubleshoot).setEnabled(!busy && !downloads.hasWork())
                 .setOnMenuItemClickListener(item -> { showHelp(app); return true; });
         if (app != Releases.App.AUTO)
-            menu.getMenu().add(R.string.install).setEnabled(!busy && !downloads.hasWork())
+            menu.getMenu().add(Releases.installed(getPackageManager(), app) == null ? R.string.download : R.string.repair_action).setEnabled(!busy && !downloads.hasWork())
                 .setOnMenuItemClickListener(item -> { showInstallOptions(app); return true; });
         menu.show();
     }
@@ -479,7 +488,9 @@ public final class MainActivity extends Activity {
         dialog.show();
     }
 
-    private void showInstallOptions(Releases.App app) {
+    private void showInstallOptions(Releases.App app) { showInstallOptions(app, false); }
+
+    private void showInstallOptions(Releases.App app, boolean updateRequested) {
         if (busy || downloads.occupied(app) || InternalInstallOperation.busy()
                 || PendingSetup.read(this) != null) {
             Toast.makeText(this, R.string.internal_wait, Toast.LENGTH_SHORT).show(); return;
@@ -495,19 +506,19 @@ public final class MainActivity extends Activity {
             content.addView(assisted, UiStyle.actionParams(this));
             content.addView(text(getString(R.string.install_assisted_description), 14, mutedColor, false));
         }
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(getString(Releases.installed(getPackageManager(), app) == null ? R.string.download : R.string.repair_action) + " · " + app.title)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(getString(updateRequested ? R.string.update : Releases.installed(getPackageManager(), app) == null ? R.string.download : R.string.repair_action) + " · " + app.title)
                 .setView(content).setNegativeButton(R.string.cancel, null).create();
         classic.setOnClickListener(v -> {
             dialog.dismiss();
             Row row = rows.get(app);
             PackageInfo current = Releases.installed(getPackageManager(), app);
-            if (row.release != null && row.release.isNewer(current)) install(app, InstallMode.CLASSIC);
+            if ((updateRequested || current == null) && row.release != null && row.release.isNewer(current)) install(app, InstallMode.CLASSIC);
             else if (current != null) repair(app);
             else checkReleases();
         });
         assisted.setOnClickListener(v -> {
             dialog.dismiss();
-            startActivity(new Intent(this, InternalInstallActivity.class).putExtra("app", app.name()).putExtra("new_request", true));
+            startActivity(new Intent(this, InternalInstallActivity.class).putExtra("app", app.name()).putExtra("new_request", true).putExtra("update_requested", updateRequested));
         });
         dialog.show();
     }
@@ -1032,7 +1043,9 @@ public final class MainActivity extends Activity {
         row.install.setEnabled(!busy);
         row.more.setEnabled(!busy);
         boolean pendingLocal = pendingLocalApp() == app;
-        row.installOptions.setVisibility(app != Releases.App.AUTO && current != null && !available && !pendingLocal && !downloads.occupied(app) ? View.VISIBLE : View.GONE);
+        row.installOptions.setVisibility(app != Releases.App.AUTO && current != null && !pendingLocal && !downloads.occupied(app) ? View.VISIBLE : View.GONE);
+        row.openInstalled.setVisibility(app != Releases.App.AUTO && current != null && available && !pendingLocal ? View.VISIBLE : View.GONE);
+        row.openInstalled.setEnabled(!busy && !downloads.occupied(app));
         row.installOptions.setEnabled(!busy && !downloads.hasWork() && !InternalInstallOperation.busy() && !InstallManager.hasPending(this) && PendingSetup.read(this) == null);
         row.install.setText(pendingLocal ? R.string.ready_install
                 : current == null ? R.string.download

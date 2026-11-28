@@ -65,6 +65,23 @@ public class UpdateScreenTest {
         assertEquals(activity.getString(R.string.repair_action),button(Releases.App.TUBE,"installOptions").getText());
         assertSame(button(Releases.App.TUBE,"install").getParent(),button(Releases.App.TUBE,"installOptions").getParent());
     }
+    @Test public void availableUpdateDoesNotHideRepairAndChoicesKeepDifferentIntent() throws Exception {
+        android.content.pm.PackageInfo info=new android.content.pm.PackageInfo();info.packageName=Releases.App.TUBE.packageName;info.versionName="1";info.setLongVersionCode(1);info.applicationInfo=new android.content.pm.ApplicationInfo();info.applicationInfo.packageName=info.packageName;
+        Shadows.shadowOf(context.getPackageManager()).installPackage(info);
+        invoke(activity,"render",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
+        assertEquals(activity.getString(R.string.update),button(Releases.App.TUBE,"install").getText());
+        assertEquals(android.view.View.VISIBLE,button(Releases.App.TUBE,"installOptions").getVisibility());
+        assertEquals(android.view.View.VISIBLE,button(Releases.App.TUBE,"openInstalled").getVisibility());
+        button(Releases.App.TUBE,"install").performClick();
+        android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.install_assisted_option)).performClick();
+        assertTrue(Shadows.shadowOf(activity).getNextStartedActivity().getBooleanExtra("update_requested",false));
+        button(Releases.App.TUBE,"installOptions").performClick();
+        dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.install_assisted_option)).performClick();
+        assertFalse(Shadows.shadowOf(activity).getNextStartedActivity().getBooleanExtra("update_requested",true));
+        assertFalse(queue.hasWork());
+    }
     void drain() throws Exception {
         ((ExecutorService)field(activity,"worker")).submit(() -> {}).get(5,TimeUnit.SECONDS);
         Shadows.shadowOf(Looper.getMainLooper()).idle();

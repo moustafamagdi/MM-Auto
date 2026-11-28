@@ -50,6 +50,8 @@ public final class InternalInstallActivity extends Activity {
             stopService(new Intent(this, InternalPairingService.class));
         manualPairing = saved != null && saved.getBoolean("manual_pairing", false);
         InternalInstallOperation.select(this, app);
+        if (saved == null && getIntent().getBooleanExtra("new_request", false) && !InternalInstallOperation.busy())
+            InternalInstallOperation.prefs(this).edit().putBoolean("update_requested", getIntent().getBooleanExtra("update_requested", false)).commit();
         if (saved == null && getIntent().getBooleanExtra("new_request", false)
                 && !InternalInstallOperation.busy() && "finished".equals(InternalInstallOperation.state(this)))
             InternalInstallOperation.prefs(this).edit().putString("state", "setup").commit();
@@ -102,7 +104,7 @@ public final class InternalInstallActivity extends Activity {
         }
         if (state.equals("ready")) {
             boolean installed = Releases.installed(getPackageManager(), app) != null;
-            text(getString(installed ? R.string.internal_confirm_repair : R.string.internal_confirm_new, app.title), 17);
+            text(getString(InternalInstallOperation.prefs(this).getBoolean("update_requested", false) ? R.string.internal_confirm_update : installed ? R.string.internal_confirm_repair : R.string.internal_confirm_new, app.title), 17);
             text(getString(R.string.internal_permission_note), 15);
             Button install = UiStyle.button(this, getString(R.string.internal_install_app, app.title), true);
             install.setOnClickListener(v -> { install.setEnabled(false); InternalInstallOperation.install(this, app); shown = ""; });

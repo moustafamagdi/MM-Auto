@@ -27,7 +27,7 @@ final class InternalInstallOperation {
         SharedPreferences p = prefs(context);
         String old = state(context);
         if (!app.name().equals(p.getString("app", "")))
-            p.edit().putString("app", app.name()).putString("state", "setup").remove("detail").commit();
+            p.edit().putString("app", app.name()).putString("state", "setup").remove("detail").remove("update_requested").commit();
         else if (old.equals("pairing") || old.equals("connecting") || old.equals("preparing") || old.equals("installing"))
             p.edit().putString("state", "interrupted").commit();
     }
@@ -94,9 +94,10 @@ final class InternalInstallOperation {
         InternalAdbPolicy.target(app.name());
 
         boolean preview = ReleaseChannel.preview(context);
+        boolean updateRequested = prefs(context).getBoolean("update_requested", false);
         start(context, app, "preparing", c -> {
             File apk = null;
-            boolean repair = Releases.installed(c.getPackageManager(), app) != null;
+            boolean repair = !updateRequested && Releases.installed(c.getPackageManager(), app) != null;
             try (InternalAdbClient client = new InternalAdbClient(c)) {
                 // Fail before downloading if the helper has stopped / its dynamic port changed.
                 int port = InternalAdbClient.discover(c, false);
@@ -107,7 +108,7 @@ final class InternalInstallOperation {
                     try (TransferControl control = new TransferControl(10 * 60000)) {
                         transfer = control; checkCancelled();
                         Releases.Release release = Releases.latest(app, null, control, preview);
-                        if (release == null) throw new IOException();
+                        if (release == null || (updateRequested && !release.isNewer(Releases.installed(c.getPackageManager(), app)))) throw new IOException("NO_NEWER_RELEASE");
                         apk = Releases.download(app, release, c.getCacheDir(), c.getPackageManager(), control, bytes -> {});
                         Releases.validate(app, release, apk, c.getPackageManager());
                     }
