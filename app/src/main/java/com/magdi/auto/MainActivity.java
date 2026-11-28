@@ -358,7 +358,7 @@ public final class MainActivity extends Activity {
         LinearLayout installActions = new LinearLayout(this);
         installActions.setOrientation(LinearLayout.HORIZONTAL);
         installActions.addView(row.install, new LinearLayout.LayoutParams(0, -2, 1));
-        row.installOptions = action(getString(R.string.install), false);
+        row.installOptions = action(getString(R.string.repair_action), false);
         row.installOptions.setOnClickListener(v -> showInstallOptions(app));
         LinearLayout.LayoutParams optionsParams = new LinearLayout.LayoutParams(0, -2, 1);
         optionsParams.setMarginStart(dp(8));
@@ -495,7 +495,7 @@ public final class MainActivity extends Activity {
             content.addView(assisted, UiStyle.actionParams(this));
             content.addView(text(getString(R.string.install_assisted_description), 14, mutedColor, false));
         }
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(getString(R.string.install) + " · " + app.title)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(getString(Releases.installed(getPackageManager(), app) == null ? R.string.download : R.string.repair_action) + " · " + app.title)
                 .setView(content).setNegativeButton(R.string.cancel, null).create();
         classic.setOnClickListener(v -> {
             dialog.dismiss();
@@ -1035,7 +1035,7 @@ public final class MainActivity extends Activity {
         row.installOptions.setVisibility(app != Releases.App.AUTO && current != null && !available && !pendingLocal && !downloads.occupied(app) ? View.VISIBLE : View.GONE);
         row.installOptions.setEnabled(!busy && !downloads.hasWork() && !InternalInstallOperation.busy() && !InstallManager.hasPending(this) && PendingSetup.read(this) == null);
         row.install.setText(pendingLocal ? R.string.ready_install
-                : current == null ? R.string.install
+                : current == null ? R.string.download
                 : available ? R.string.update : R.string.open);
         row.manual.setVisibility(row.error == null || (current == null && !available) ? View.GONE : View.VISIBLE);
         row.manual.setEnabled(!busy);

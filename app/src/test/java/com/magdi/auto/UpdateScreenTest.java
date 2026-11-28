@@ -56,12 +56,13 @@ public class UpdateScreenTest {
         assertEquals(InternalInstallActivity.class.getName(),started.getComponent().getClassName());
         assertEquals("IPTV",started.getStringExtra("app"));assertFalse(queue.hasWork());
     }
-    @Test public void installedCurrentAppShowsInstallBesideOpen() throws Exception {
+    @Test public void installedCurrentAppShowsRepairBesideOpen() throws Exception {
         android.content.pm.PackageInfo info=new android.content.pm.PackageInfo();info.packageName=Releases.App.TUBE.packageName;info.versionName="999";info.setLongVersionCode(99999);info.applicationInfo=new android.content.pm.ApplicationInfo();info.applicationInfo.packageName=info.packageName;
         Shadows.shadowOf(context.getPackageManager()).installPackage(info);
         invoke(activity,"render",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
         assertEquals(activity.getString(R.string.open),button(Releases.App.TUBE,"install").getText());
         assertEquals(android.view.View.VISIBLE,button(Releases.App.TUBE,"installOptions").getVisibility());
+        assertEquals(activity.getString(R.string.repair_action),button(Releases.App.TUBE,"installOptions").getText());
         assertSame(button(Releases.App.TUBE,"install").getParent(),button(Releases.App.TUBE,"installOptions").getParent());
     }
     void drain() throws Exception {
@@ -105,6 +106,7 @@ public class UpdateScreenTest {
         assertFalse(RepairState.takeFinished(context,pkg));
     }
     @Test public void mainInstallIgnoresOldShizukuPreferenceAndKeepsClassic() throws Exception {
+        assertEquals(activity.getString(R.string.download),button(Releases.App.TUBE,"install").getText());
         InstallManager.setMode(context,InstallMode.SHIZUKU);button(Releases.App.TUBE,"install").performClick(); chooseClassic();
         assertEquals(InstallMode.CLASSIC,queue.get(Releases.App.TUBE).mode);
     }

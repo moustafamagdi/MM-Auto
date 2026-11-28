@@ -37,7 +37,7 @@
     <string name="share">Share</string>
     <string name="close">Close</string>
     <string name="repair_action">Repair installation</string>
-    <string name="help_description">View problem details or share a diagnostic report. For installation options, use the Install button.</string>
+    <string name="help_description">View problem details or share a diagnostic report. For installation options, use Download or Repair.</string>
     <string name="allow_install_title">Allow app installation</string>
     <string name="allow_install_description">Android needs permission to install apps from MM Auto. Allow it on the next screen, then return and tap again.</string>
     <string name="continue_action">Continue</string>
@@ -72,4 +72,5 @@
     <string name="install_classic_option">Normal installation (Classic)</string>
     <string name="install_assisted_option">Assisted installation · Preview</string>
     <string name="install_assisted_description">Built into MM Auto. No Shizuku or King Installer app needed. We will guide you through phone pairing. This does not guarantee the app will appear on every car.</string>
+    <string name="repair_action">Repair</string>
 </resources>

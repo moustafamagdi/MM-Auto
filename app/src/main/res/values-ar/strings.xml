@@ -37,7 +37,7 @@
     <string name="share">مشاركة</string>
     <string name="close">إغلاق</string>
     <string name="repair_action">إصلاح التثبيت</string>
-    <string name="help_description">اعرض تفاصيل المشكلة أو شارك تقرير التشخيص. لاختيارات التثبيت، استخدم زر تثبيت.</string>
+    <string name="help_description">اعرض تفاصيل المشكلة أو شارك تقرير التشخيص. لاختيارات التثبيت، استخدم زر تحميل أو إصلاح.</string>
     <string name="allow_install_title">السماح بتثبيت التطبيقات</string>
     <string name="allow_install_description">يحتاج أندرويد إذن تثبيت التطبيقات من MM Auto. اسمح به في الشاشة التالية، ثم ارجع واضغط مرة أخرى.</string>
     <string name="continue_action">متابعة</string>
@@ -72,4 +72,5 @@
     <string name="install_classic_option">التثبيت العادي (Classic)</string>
     <string name="install_assisted_option">التثبيت المساعد · تجريبي</string>
     <string name="install_assisted_description">مدمج في MM Auto، من غير تطبيق Shizuku أو King Installer. هنوضح لك خطوات ربط الموبايل. ظهوره على كل شاشات العربيات مش مضمون.</string>
+    <string name="repair_action">إصلاح</string>
 </resources>
