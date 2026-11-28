@@ -41,7 +41,6 @@ public final class InternalInstallActivity extends Activity {
     }
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        if (!BuildConfig.VERSION_NAME.contains("preview")) { finish(); return; }
         try {
             app = InternalInstallOperation.busy() ? InternalInstallOperation.activeApp()
                     : InternalAdbPolicy.target(getIntent().getStringExtra("app"));

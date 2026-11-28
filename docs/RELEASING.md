@@ -32,3 +32,5 @@ Versions use `major.minor.patch`, optionally followed by a hyphenated suffix suc
 Create a draft, upload the signed APK, verify name/label/size/digest, then publish. Do not overwrite published APKs or move existing tags. If releasing an unmerged experimental branch, say so in the notes.
 
 Carry forward unverified paths: Shizuku on physical phones, other ROMs, Classic-first repair, self-update/settings preservation and playback. Diagnostics is not an Android Auto compatibility certification.
+
+Stable APK versionName and release tags must use plain major.minor.patch (no preview suffix). Experimental APKs retain a preview suffix and GitHub prerelease=true. Do not gate supported installation features on the versionName; update channels use GitHub release metadata and versionCode. Publish a new higher versionCode to rename an installed build; never overwrite an existing APK/tag.

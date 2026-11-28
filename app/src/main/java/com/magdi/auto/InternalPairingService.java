@@ -51,7 +51,7 @@ public final class InternalPairingService extends Service {
     }
     @Override public IBinder onBind(Intent intent) { return null; }
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null || !BuildConfig.VERSION_NAME.contains("preview")) { stopSelf(); return START_NOT_STICKY; }
+        if (intent == null) { stopSelf(); return START_NOT_STICKY; }
         if (START.equals(intent.getAction())) {
             if (pairing || InternalInstallOperation.busy()) { if (session == null) stopSelf(); return START_NOT_STICKY; }
             Releases.App requested;

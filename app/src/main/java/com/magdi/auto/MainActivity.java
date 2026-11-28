@@ -502,7 +502,7 @@ public final class MainActivity extends Activity {
         content.addView(classic, UiStyle.actionParams(this));
         Button assisted = action(getString(R.string.install_assisted_option), false);
         assisted.setEnabled(!downloads.hasWork() && !InstallManager.hasPending(this));
-        if (app != Releases.App.AUTO && BuildConfig.VERSION_NAME.contains("preview")) {
+        if (app != Releases.App.AUTO) {
             content.addView(assisted, UiStyle.actionParams(this));
             content.addView(text(getString(R.string.install_assisted_description), 14, mutedColor, false));
         }
