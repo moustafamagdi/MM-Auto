@@ -1,9 +1,9 @@
 <resources>
     <string name="pair_notification_channel">Phone pairing</string>
     <string name="pair_notification_title">Set up %1$s</string>
-    <string name="pair_notification_wait">Keep the pairing code window open. Tap Enter code in this notification.</string>
+    <string name="pair_notification_wait">Keep the code window open. Tap Enter code here. This notification is available for 10 minutes.</string>
     <string name="pair_notification_reply">Enter code</string>
-    <string name="pair_notification_help">Open phone setup, enable Wireless debugging, then choose Pair device with pairing code. Keep that window open and pull down notifications. Enter the six-digit code in the MM Auto notification, without returning here. If the setting is not highlighted, scroll to Wireless debugging. The notification is temporary; open setup again if it expires.</string>
+    <string name="pair_notification_help">1. Open phone setup and enable Wireless debugging.\n2. Choose Pair device with pairing code.\n3. Keep that window open. Pull down notifications and enter the code in MM Auto’s notification. You have 10 minutes to enter it.</string>
     <string name="pair_notification_permission">Allow MM Auto notifications to enter the code without closing the pairing window. Then return here and open phone setup again.</string>
     <string name="pair_notification_success">Paired. Tap here to return and check the connection before installing.</string>
     <string name="pair_notification_failed">Pairing did not finish. Tap here to retry with a new code. Keep the code window open.</string>

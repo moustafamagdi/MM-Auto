@@ -1,9 +1,9 @@
 <resources>
     <string name="pair_notification_channel">اقتران الهاتف</string>
     <string name="pair_notification_title">إعداد %1$s</string>
-    <string name="pair_notification_wait">اترك نافذة كود الاقتران مفتوحة، واضغط «إدخال الكود» في هذا الإشعار.</string>
+    <string name="pair_notification_wait">اترك نافذة الكود مفتوحة واضغط إدخال الكود هنا. الإشعار متاح لمدة ١٠ دقائق.</string>
     <string name="pair_notification_reply">إدخال الكود</string>
-    <string name="pair_notification_help">افتح إعدادات الهاتف، وفعّل «تصحيح الأخطاء اللاسلكي»، ثم اختر «إقران الجهاز باستخدام رمز الاقتران». اترك نافذة الكود مفتوحة واسحب الإشعارات، ثم أدخل الأرقام الستة في إشعار MM Auto دون الرجوع للتطبيق. لو الخيار لم يظهر محددًا، مرّر لأسفل حتى تجده. الإشعار مؤقت؛ لو انتهى افتح الإعدادات من هنا مجددًا.</string>
+    <string name="pair_notification_help">١. افتح إعدادات الهاتف وفعّل تصحيح الأخطاء اللاسلكي.\n٢. اختر إقران الجهاز باستخدام رمز الاقتران.\n٣. اترك نافذة الكود مفتوحة، واسحب الإشعارات لإدخاله في إشعار MM Auto. الإشعار متاح لمدة ١٠ دقائق.</string>
     <string name="pair_notification_permission">اسمح بإشعارات MM Auto لإدخال الكود دون إغلاق نافذة الاقتران. ثم ارجع هنا وافتح إعدادات الهاتف مجددًا.</string>
     <string name="pair_notification_success">تم الاقتران. اضغط هنا للرجوع وفحص الاتصال قبل التثبيت.</string>
     <string name="pair_notification_failed">لم يكتمل الاقتران. اضغط هنا للمحاولة بكود جديد، واترك نافذة الكود مفتوحة.</string>

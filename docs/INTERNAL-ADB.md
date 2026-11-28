@@ -1,4 +1,4 @@
-# Built-in installer preview: 0.2.27-preview (32)
+# Built-in installer preview: 0.2.28-preview (33)
 
 ## Evidence and scope
 
@@ -45,11 +45,13 @@ root selection or persistent daemon is added.
 ## Pairing notification and settings targeting
 
 The inline reply uses an explicit, session-scoped mutable service PendingIntent,
-not an Activity. The non-exported foreground service lasts at most 150 seconds
-per user interaction (shortService on Android 14+), and never starts installation.
-Expiry, cancellation, changed target and process death invalidate reply actions.
-Codes are removed from incoming RemoteInput data and never saved or logged.
-Blocked notifications lead to notification settings instead of a hidden prompt.
+not an Activity. Waiting is a normal notification, available for ten minutes,
+without keeping a foreground service running. Its private ticket stores only
+app, random session and expiry, never the pairing code. Reply starts a bounded
+short foreground service, consumes the ticket once accepted, and never installs.
+A waiting ticket survives service death; accepted operations are not replayed.
+Expired or changed-target replies are rejected. Blocked notifications lead to
+notification settings. Pairing codes are never saved or logged.
 
 Settings first uses an OEM direct wireless-debugging action where available;
 otherwise it opens Developer options with the toggle_adb_wireless preference
@@ -131,3 +133,15 @@ credential non-persistence, expiry, stale replies after service death, target
 validation, and Settings highlight hints. Arabic/English and light/dark screen
 tests cover the collapsed manual fallback. Actual Samsung pairing and OEM
 scroll/highlight behavior require phone validation; no new car validation.
+
+## 0.2.28 follow-up
+
+Installation discovers the current local ADB endpoint both before APK preparation
+and before dispatch, instead of reusing a stored connection port. The normal
+connection screen no longer asks for a port. Split-screen manual pairing remains
+an optional fallback. Completion shows the result, Close and optional details.
+
+On the user’s Samsung SM-S948B, an in-app MM IPTV same-version reinstall completed
+on the existing hotspot. Android update time changed and source was Play with
+shell initiator. No uninstall was used. Car behavior and a fresh notification
+pairing session have not been validated in this follow-up.

@@ -20,7 +20,8 @@ public final class InternalPairingService extends Service {
     private final Handler main = new Handler(Looper.getMainLooper());
     private Releases.App target;
     private String session;
-    private boolean pairing, finished;
+    private boolean pairing, finished, waiting;
+    static final long WAIT_MS = 10 * 60_000;
     private PendingIntent replyIntent, stopIntent;
     private static volatile Releases.App waitingApp;
     static Releases.App waitingApp() { return waitingApp; }
@@ -56,34 +57,48 @@ public final class InternalPairingService extends Service {
             cancelActions();
             target = requested; waitingApp = requested; session = UUID.randomUUID().toString(); finished = false;
             channel(this);
-            try {
-                promote(notification(R.string.pair_notification_wait, true));
-                main.removeCallbacks(expire); main.postDelayed(expire, WINDOW_MS);
-            } catch (RuntimeException denied) {
-                finished = true; stopSelf();
-            }
+            waiting = true;
+            getSharedPreferences("pair_ticket",0).edit().putString("session",session).putString("app",target.name())
+                    .putLong("expires",System.currentTimeMillis()+WAIT_MS).commit();
+            notifyStatus(R.string.pair_notification_wait, true);
+            stopSelf();
             return START_NOT_STICKY;
         }
-        // No replay after service/process death, timeout or a different selected app.
-        if (!validSession(intent)) { if (session == null) stopSelf(); return START_NOT_STICKY; }
+        // A waiting notification may restart this service, but an accepted code is consumed once.
+        if (session == null) {
+            android.content.SharedPreferences ticket=getSharedPreferences("pair_ticket",0);
+            if (ticket.getLong("expires",0)>System.currentTimeMillis()
+                    && intent.getStringExtra("session") != null
+                    && intent.getStringExtra("session").equals(ticket.getString("session",""))) {
+                try { target=InternalAdbPolicy.target(ticket.getString("app","")); session=ticket.getString("session",null); }
+                catch(IllegalArgumentException ignored) { }
+            }
+        }
+        // No replay after acceptance, expiry or a different selected app.
+        if (!validSession(intent)) { if (!pairing) stopSelf(); return START_NOT_STICKY; }
         if (STOP.equals(intent.getAction())) {
+            getSharedPreferences("pair_ticket",0).edit().clear().commit();
             if (pairing) InternalInstallOperation.cancel(this);
             finished = true; stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
         } else if (REPLY.equals(intent.getAction()) && !pairing) {
             if (InternalInstallOperation.busy()) {
-                notifyStatus(R.string.internal_wait, false); return START_NOT_STICKY;
+                stopSelf(); return START_NOT_STICKY;
             }
             Bundle results = RemoteInput.getResultsFromIntent(intent);
             CharSequence input = results == null ? null : results.getCharSequence(CODE);
             String code;
             try { code = InternalAdbPolicy.code(input == null ? null : input.toString().trim()); }
             catch (IllegalArgumentException invalid) {
-                notifyStatus(R.string.internal_invalid_code, true); return START_NOT_STICKY;
+                waiting = true;
+                promote(notification(R.string.internal_invalid_code, true));
+                stopForeground(STOP_FOREGROUND_DETACH); stopSelf(); return START_NOT_STICKY;
             } finally {
                 // Do not retain incoming RemoteInput extras/ClipData in the Service.
                 if (results != null) results.clear();
                 intent.setClipData(null);
             }
+            waiting = false;
+            getSharedPreferences("pair_ticket",0).edit().clear().commit();
             pairing = true;
             // Reset bounded foreground window on this explicit user interaction.
             try { promote(notification(R.string.internal_pairing, false)); }
@@ -95,7 +110,7 @@ public final class InternalPairingService extends Service {
         return START_NOT_STICKY;
     }
     private boolean validSession(Intent intent) {
-        return !finished && session != null && session.equals(intent.getStringExtra("session"))
+        return !finished && (pairing || getSharedPreferences("pair_ticket",0).getLong("expires",0)>System.currentTimeMillis()) && session != null && session.equals(intent.getStringExtra("session"))
                 && target != null && target.name().equals(InternalInstallOperation.prefs(this).getString("app", ""));
     }
     private void promote(Notification notification) {
@@ -140,7 +155,7 @@ public final class InternalPairingService extends Service {
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(open).setOnlyAlertOnce(true).setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PRIVATE)
-                .setOngoing(!finished).setAutoCancel(finished).setTimeoutAfter(WINDOW_MS)
+                .setOngoing(!finished).setAutoCancel(finished).setTimeoutAfter(waiting ? WAIT_MS : WINDOW_MS)
                 .setCategory(Notification.CATEGORY_SERVICE);
         if (allowReply) {
             Intent reply = new Intent(this, InternalPairingService.class).setAction(REPLY)
@@ -169,7 +184,7 @@ public final class InternalPairingService extends Service {
     @Override public void onTimeout(int startId, int fgsType) { expire.run(); }
     @Override public void onDestroy() {
         if (pairing && !finished) InternalInstallOperation.cancel(this);
-        main.removeCallbacksAndMessages(null); cancelActions(); waitingApp = null;
+        main.removeCallbacksAndMessages(null); if (!waiting) cancelActions(); waitingApp = null;
         super.onDestroy();
     }
 }

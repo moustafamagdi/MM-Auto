@@ -22,6 +22,7 @@ public class InternalPairingServiceTest {
     Context c;
     @Before public void setup() {
         c=RuntimeEnvironment.getApplication();
+        c.getSharedPreferences("pair_ticket",0).edit().clear().commit();
         InternalInstallOperation.prefs(c).edit().clear().putString("app","TUBE").putString("state","setup").commit();
     }
     Notification notification() { return shadowOf(c.getSystemService(NotificationManager.class)).getNotification(InternalPairingService.NOTIFICATION); }
@@ -48,10 +49,14 @@ public class InternalPairingServiceTest {
         try(Managed controller=new Managed()) {
             InternalPairingService service=controller.get();
             service.onStartCommand(InternalPairingService.start(c,Releases.App.TUBE),0,1);
-            Intent oldReply=new Intent(shadowOf(notification().actions[0].actionIntent).getSavedIntent());
-            shadowOf(android.os.Looper.getMainLooper()).idleFor(Duration.ofMillis(InternalPairingService.WINDOW_MS+1));
-            assertEquals(c.getString(R.string.pair_notification_expired),notification().extras.getString(Notification.EXTRA_TEXT));
-            assertTrue(notification().actions==null || notification().actions.length==0);
+            Notification.Action replyAction=notification().actions[0];
+            Intent oldReply=new Intent(shadowOf(replyAction.actionIntent).getSavedIntent());
+            Bundle input=new Bundle(); input.putCharSequence(InternalPairingService.CODE,"123456");
+            RemoteInput.addResultsToIntent(replyAction.getRemoteInputs(),oldReply,input);
+            assertEquals(600000,notification().getTimeoutAfter());
+            c.getSharedPreferences("pair_ticket",0).edit().putLong("expires",0).commit();
+
+
             service.onStartCommand(oldReply,0,2);
             assertFalse(InternalInstallOperation.busy());
         }
@@ -62,11 +67,25 @@ public class InternalPairingServiceTest {
             controller.get().onStartCommand(InternalPairingService.start(c,Releases.App.TUBE),0,1);
             oldReply=new Intent(shadowOf(notification().actions[0].actionIntent).getSavedIntent());
         }
+        c.getSharedPreferences("pair_ticket",0).edit().clear().commit();
         try(Managed controller=new Managed()) {
             controller.get().onStartCommand(oldReply,0,1);
             controller.get().onStartCommand(InternalPairingService.start(c,Releases.App.IPTV),0,2);
             assertFalse(InternalInstallOperation.busy());
             assertEquals("TUBE",InternalInstallOperation.prefs(c).getString("app",""));
+        }
+    }
+    @Test public void waitingReplySurvivesServiceRecreationWithoutOpeningActivity() {
+        Intent reply;
+        try(Managed controller=new Managed()) {
+            controller.get().onStartCommand(InternalPairingService.start(c,Releases.App.TUBE),0,1);
+            reply=new Intent(shadowOf(notification().actions[0].actionIntent).getSavedIntent());
+        }
+        try(Managed controller=new Managed()) {
+            controller.get().onStartCommand(reply,0,1);
+            assertEquals(c.getString(R.string.internal_invalid_code),notification().extras.getString(Notification.EXTRA_TEXT));
+            assertFalse(InternalInstallOperation.busy());
+            assertNull(shadowOf((Application)c).getNextStartedActivity());
         }
     }
     @Test public void developerSettingsRequestsWirelessHighlightWithoutClearingTask() {

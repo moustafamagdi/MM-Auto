@@ -92,15 +92,15 @@ final class InternalInstallOperation {
     }
     static void install(Context context, Releases.App app) {
         InternalAdbPolicy.target(app.name());
-        int port = prefs(context).getInt("connect_port", 0);
-        InternalAdbPolicy.port(Integer.toString(port));
+
         boolean preview = ReleaseChannel.preview(context);
         start(context, app, "preparing", c -> {
             File apk = null;
             boolean repair = Releases.installed(c.getPackageManager(), app) != null;
             try (InternalAdbClient client = new InternalAdbClient(c)) {
                 // Fail before downloading if the helper has stopped / its dynamic port changed.
-                if (!client.connectLocal(port)) throw new IOException();
+                int port = InternalAdbClient.discover(c, false);
+                if (!client.connectLocal(port)) throw new IOException("LOCAL_CONNECTION_FAILED");
                 if (repair) apk = RepairApk.prepare(c, app);
                 else {
                     SupportEvents.event("download", app.packageName, "started", "adb");
@@ -116,7 +116,8 @@ final class InternalInstallOperation {
                 }
                 // Reconnect after preparation; no background persistent ADB service is needed.
                 client.disconnect();
-                if (!client.connectLocal(port)) throw new IOException();
+                port = InternalAdbClient.discover(c, false);
+                if (!client.connectLocal(port)) throw new IOException("LOCAL_CONNECTION_FAILED");
                 PackageInfo archive = c.getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
                 if (archive == null) throw new IOException();
                 long expectedVersion = archive.getLongVersionCode();

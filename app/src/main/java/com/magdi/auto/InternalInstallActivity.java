@@ -89,8 +89,7 @@ public final class InternalInstallActivity extends Activity {
             if (!InternalInstallOperation.prefs(this).getBoolean("installer_match", false)) text(getString(R.string.internal_source_unconfirmed), 16);
             text(getString(R.string.internal_turn_off), 16);
             button(R.string.close, true, this::finish);
-            button(R.string.internal_new_attempt, false, () -> change("paired"));
-            settings(); details(); return;
+            button(R.string.problem_details, false, this::completionDetails); return;
         }
         if (state.equals("failed") || state.equals("interrupted")) {
             text(getString(state.equals("interrupted") ? R.string.internal_interrupted : R.string.internal_failed), 17);
@@ -111,10 +110,9 @@ public final class InternalInstallActivity extends Activity {
         boolean paired = state.equals("paired") || InternalInstallOperation.prefs(this).getBoolean("paired", false);
         if (paired && !state.equals("pair_again")) {
             text(getString(R.string.internal_connect_help), 17); settings();
-            EditText port = input(R.string.internal_connection_port, false);
+
             button(R.string.internal_check_connection, true, () -> {
-                try { InternalInstallOperation.connect(this, app, InternalAdbPolicy.optionalPort(port.getText().toString().trim())); shown = ""; }
-                catch (IllegalArgumentException invalid) { port.setError(getString(R.string.internal_invalid_port)); }
+                InternalInstallOperation.connect(this, app, 0); shown = "";
             });
             button(R.string.internal_pair_again, false, () -> change("pair_again"));
         } else {
@@ -150,6 +148,11 @@ public final class InternalInstallActivity extends Activity {
             } catch (java.io.IOException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show(); }
         });
     }
+    private void completionDetails() {
+        new AlertDialog.Builder(this).setTitle(R.string.problem_details)
+            .setMessage(com.magdi.auto.install.InstallManager.lastAttempt(this, app.packageName))
+            .setPositiveButton(R.string.close, null).show();
+    }
     private void settings() {
         button(R.string.internal_settings, false, this::openSettings);
     }
@@ -176,7 +179,7 @@ public final class InternalInstallActivity extends Activity {
                         catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
                     }).setNegativeButton(R.string.cancel, null).show(); return;
         }
-        try { startForegroundService(InternalPairingService.start(this, app)); openSettings(); }
+        try { startService(InternalPairingService.start(this, app)); openSettings(); }
         catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
