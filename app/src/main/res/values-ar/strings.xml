@@ -73,4 +73,8 @@
     <string name="install_assisted_description">مدمج في MM Auto، من غير تطبيق Shizuku أو King Installer. هنوضح لك خطوات ربط الموبايل. ظهوره على كل شاشات العربيات مش مضمون.</string>
     <string name="repair_action">إصلاح</string>
     <string name="internal_confirm_update">تحميل وتثبيت آخر تحديث متاح لتطبيق %1$s مع الحفاظ على بياناته.</string>
+    <string name="dashboard_heading">تطبيقاتك، جاهزة للعربية</string>
+    <string name="dashboard_installed">على موبايلك</string>
+    <string name="dashboard_get_started">اختار تنزيل عشان تبدأ</string>
+    <string name="dashboard_stable">إصدار رسمي</string>
 </resources>

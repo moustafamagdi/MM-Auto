@@ -19,6 +19,11 @@ final class UiStyle {
  static void systemBars(android.app.Activity activity){android.view.WindowInsetsController controller=activity.getWindow().getInsetsController();if(controller!=null){int mask=android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;controller.setSystemBarsAppearance(dark(activity)?0:mask,mask);}}
  static int border(Context c){return dark(c)?0xff354964:0xffc4d2e7;}
  static GradientDrawable surface(Context c,int color,int radius,int stroke){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(c,radius));if(stroke!=0)d.setStroke(dp(c,1),stroke);return d;}
+ static GradientDrawable appCard(Context c,Releases.App app){
+  boolean night=dark(c);int start=app==Releases.App.TUBE?(night?0xff542b3c:0xffffe8e9):app==Releases.App.IPTV?(night?0xff174b43:0xffdcf5e9):(night?0xff283e69:0xffdce8ff);
+  GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{start,night?0xff20364a:0xffedf5ff,night?0xff173a40:0xffdef2ef});
+  d.setCornerRadius(dp(c,26));d.setStroke(dp(c,1),night?0xff506275:0xffb9cddc);return d;
+ }
  static Button button(Context c,String title,boolean primary){Button b=new Button(c);b.setText(title);style(b,primary);return b;}
  static void style(Button b,boolean primary){
   Context c=b.getContext();boolean dark=dark(c);int accent=dark?0xff8bb4ff:0xff2563eb;

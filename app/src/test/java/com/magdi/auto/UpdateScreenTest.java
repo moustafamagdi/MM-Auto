@@ -82,6 +82,15 @@ public class UpdateScreenTest {
         assertFalse(Shadows.shadowOf(activity).getNextStartedActivity().getBooleanExtra("update_requested",true));
         assertFalse(queue.hasWork());
     }
+    @Test public void cardDetailsKeepNotesHelpAndManualApkAccessible() throws Exception {
+        invoke(activity,"showVersion",new Class<?>[]{Releases.App.class},Releases.App.TUBE);
+        android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.whats_new)));
+        assertNotNull(findButton(dialog.getWindow().getDecorView(),activity.getString(R.string.troubleshoot)));
+        assertEquals(activity.getString(R.string.choose_apk),dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).getText());
+        assertEquals(android.view.View.GONE,button(Releases.App.TUBE,"repair").getVisibility());
+        dialog.dismiss();
+    }
     void drain() throws Exception {
         ((ExecutorService)field(activity,"worker")).submit(() -> {}).get(5,TimeUnit.SECONDS);
         Shadows.shadowOf(Looper.getMainLooper()).idle();

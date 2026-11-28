@@ -169,8 +169,8 @@ public class ReleaseCacheTest {
         for (Releases.App app : new Releases.App[] {Releases.App.IPTV, Releases.App.TUBE}) {
             assertEquals(second.get().getString(R.string.update),
                     ((Button) field(row(second.get(), app), "install")).getText().toString());
-            assertTrue(((TextView) field(row(second.get(), app), "status"))
-                    .getText().toString().contains("Last successful check:"));
+            assertTrue((Long)field(row(second.get(),app),"checkedAt")>0);
+            assertFalse(((TextView)field(row(second.get(),app),"status")).getText().toString().contains("Last successful check:"));
         }
         second.pause(); installed(Releases.App.IPTV, 50); second.resume(); drain(second.get());
         assertEquals(second.get().getString(R.string.open),

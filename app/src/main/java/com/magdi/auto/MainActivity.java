@@ -132,7 +132,7 @@ public final class MainActivity extends Activity {
         for (UpdateDownloads.Job job : downloads.jobs.values()) if (job.recoveredInstaller) queuePaused = true;
         boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
-        backgroundColor = dark ? 0xff0b1220 : 0xfff3f6fc;
+        backgroundColor = dark ? 0xff121820 : 0xfff4f7fb;
         surfaceColor = dark ? 0xff172235 : Color.WHITE;
         primaryColor = dark ? 0xff8bb4ff : 0xff2563eb;
         inkColor = dark ? 0xffeef3fc : 0xff14233b;
@@ -151,6 +151,9 @@ public final class MainActivity extends Activity {
         });
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView brand = new ImageView(this);brand.setImageResource(R.drawable.ic_auto);
+        brand.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams brandParams=new LinearLayout.LayoutParams(dp(42),dp(42));brandParams.setMarginEnd(dp(10));header.addView(brand,brandParams);
         TextView title = text("MM Auto", 26, inkColor, true);
         title.setGravity(Gravity.START);
         header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
@@ -165,18 +168,18 @@ public final class MainActivity extends Activity {
         UiStyle.coffee(support);
         page.addView(support, UiStyle.actionParams(this));
         TextView subtitle = text(getString(R.string.app_subtitle), 16, mutedColor, false);
-        subtitle.setPadding(0, dp(6), 0, dp(24));
+        subtitle.setPadding(0, dp(14), 0, dp(22));
         page.addView(subtitle);
 
         // Keep the self-update row in memory, but show its compact card only when needed.
         selfBanner = column();
         page.addView(selfBanner);
         addRow(selfBanner, Releases.App.AUTO, R.drawable.ic_auto);
-        TextView section = text(getString(R.string.your_apps), 18, inkColor, true);
-        section.setPadding(0, 0, 0, dp(12));
+        TextView section = text(getString(R.string.dashboard_heading), 25, inkColor, true);
+        section.setPadding(0, dp(8), 0, dp(16));
         page.addView(section);
-        addRow(page, Releases.App.IPTV, R.drawable.ic_iptv);
         addRow(page, Releases.App.TUBE, R.drawable.ic_tube);
+        addRow(page, Releases.App.IPTV, R.drawable.ic_iptv);
         check = action(getString(R.string.check_updates), false);
         check.setOnClickListener(v -> { if (!busy) checkReleases(); });
         UiStyle.icon(check, R.drawable.ic_refresh_action);
@@ -322,13 +325,13 @@ public final class MainActivity extends Activity {
         LinearLayout card = column();
         row.card = card;
         card.setPadding(dp(18), dp(18), dp(18), dp(14));
-        card.setBackground(UiStyle.surface(this, surfaceColor, 22, UiStyle.border(this)));
+        card.setBackground(UiStyle.appCard(this, app));
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView image = new ImageView(this);
         image.setImageResource(icon);
         image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        header.addView(image, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        header.addView(image, new LinearLayout.LayoutParams(dp(56), dp(56)));
         LinearLayout labels = column();
         labels.setPaddingRelative(dp(12), 0, dp(4), 0);
         header.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
@@ -343,6 +346,9 @@ public final class MainActivity extends Activity {
         row.more.setContentDescription(getString(R.string.more_options, app.title));
         row.more.setOnClickListener(v -> showAppMenu(app, v));
         header.addView(row.more, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        header.setOnClickListener(v -> showVersion(app));
+        header.setContentDescription(getString(R.string.release_details)+" · "+app.title);
+        header.setFocusable(true);
         card.addView(header);
         row.status = text("", 14, mutedColor, false);
         row.status.setPadding(0, dp(12), 0, dp(8));
@@ -460,23 +466,23 @@ public final class MainActivity extends Activity {
     }
 
     private void showVersion(Releases.App app) {
-        Row row = rows.get(app);
-        PackageInfo installed = Releases.installed(getPackageManager(), app);
-        String description = installed == null ? getString(R.string.not_installed)
-                : getString(R.string.installed_version, installed.versionName);
-        if (row.release != null) description += "\n" + getString(R.string.available_version, row.release.version);
-        if (row.release != null && row.release.preview) description += " · " + getString(R.string.preview);
-        new AlertDialog.Builder(this).setTitle(app.title).setMessage(description)
-                .setPositiveButton(R.string.whats_new, (d, w) -> {
-                    if (row.release == null) { openReleases(app); return; }
-                    // The asset URL already passed the existing repository and HTTPS checks.
-                    String path = row.release.url.getPath();
-                    int end = path.lastIndexOf('/');
-                    safeStart(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com"
-                            + path.substring(0, end).replace("/releases/download/", "/releases/tag/"))));
-                })
-                .setNeutralButton(R.string.choose_apk, (d, w) -> chooseApk(app))
-                .setNegativeButton(R.string.close, null).show();
+        Row row=rows.get(app);PackageInfo installed=Releases.installed(getPackageManager(),app);
+        LinearLayout content=column();content.setPadding(dp(20),dp(8),dp(20),dp(16));
+        if(installed!=null) addVersionEntry(content,getString(R.string.installed_version,installed.versionName),getString(R.string.dashboard_installed));
+        else addVersionEntry(content,getString(R.string.not_installed),getString(R.string.dashboard_get_started));
+        if(row.release!=null) addVersionEntry(content,getString(R.string.available_version,row.release.version),getString(row.release.preview?R.string.preview:R.string.dashboard_stable));
+        if(row.checkedAt>0){String when=java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT,getResources().getConfiguration().getLocales().get(0)).format(new java.util.Date(row.checkedAt));TextView checked=text(getString(R.string.last_successful_check,when),13,mutedColor,false);checked.setPadding(0,dp(12),0,dp(8));content.addView(checked);}
+        Button notes=action(getString(R.string.whats_new),true);content.addView(notes,UiStyle.actionParams(this));
+        notes.setOnClickListener(v->{if(row.release==null){openReleases(app);return;}String path=row.release.url.getPath();int end=path.lastIndexOf('/');safeStart(new Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com"+path.substring(0,end).replace("/releases/download/","/releases/tag/"))));});
+        Button help=action(getString(R.string.troubleshoot),false);content.addView(help,UiStyle.actionParams(this));help.setOnClickListener(v->showHelp(app));
+        ScrollView scroll=new ScrollView(this);scroll.addView(content);
+        new AlertDialog.Builder(this).setTitle(app.title).setView(scroll)
+            .setNeutralButton(R.string.choose_apk,(d,w)->chooseApk(app)).setNegativeButton(R.string.close,null).show();
+    }
+    private void addVersionEntry(LinearLayout parent,String version,String state){
+        LinearLayout entry=column();entry.setPadding(dp(16),dp(14),dp(16),dp(14));entry.setBackground(UiStyle.surface(this,surfaceColor,18,UiStyle.border(this)));
+        TextView badge=text(state,12,primaryColor,true);entry.addView(badge);
+        TextView label=text(version,18,inkColor,true);label.setPadding(0,dp(5),0,0);entry.addView(label);parent.addView(entry,UiStyle.actionParams(this));
     }
 
     private void showHelp(Releases.App app) {
@@ -1025,13 +1031,6 @@ public final class MainActivity extends Activity {
                     : current != null && release != null && !ReleaseChannel.preview(this) && current.getLongVersionCode() > release.versionCode
                     ? getString(R.string.channel_wait_stable) : getString(R.string.up_to_date);
         }
-        if (row.checkedAt > 0) {
-            String when = java.text.DateFormat.getDateTimeInstance(
-                    java.text.DateFormat.SHORT, java.text.DateFormat.SHORT,
-                    getResources().getConfiguration().getLocales().get(0))
-                    .format(new java.util.Date(row.checkedAt));
-            detail += "\n" + getString(R.string.last_successful_check, when);
-        }
         if (row.error != null) detail = detail == null ? row.error : detail + "\n" + row.error;
         // Technical outcomes remain available inside Help with a problem.
         String sourceStatus = row.note != null ? row.note : detail;
@@ -1055,7 +1054,7 @@ public final class MainActivity extends Activity {
         row.progress.setVisibility(row.operation != null && busy ? View.VISIBLE : View.GONE);
         row.progress.setIndeterminate(row.percent < 0);
         if (row.percent >= 0) row.progress.setProgress(row.percent);
-        row.repair.setVisibility(busy ? View.GONE : View.VISIBLE);
+        row.repair.setVisibility(!busy && row.error != null ? View.VISIBLE : View.GONE);
         row.repair.setEnabled(!busy);
         UpdateDownloads.Job job = downloads.get(app);
         boolean queued = downloads.occupied(app);

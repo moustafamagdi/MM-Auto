@@ -73,4 +73,8 @@
     <string name="install_assisted_description">Built into MM Auto. No Shizuku or King Installer app needed. We will guide you through phone pairing. This does not guarantee the app will appear on every car.</string>
     <string name="repair_action">Repair</string>
     <string name="internal_confirm_update">Download and install the latest available update for %1$s. Your app data will be kept.</string>
+    <string name="dashboard_heading">Your car. Your apps.</string>
+    <string name="dashboard_installed">ON YOUR PHONE</string>
+    <string name="dashboard_get_started">Choose Download to get started</string>
+    <string name="dashboard_stable">Official release</string>
 </resources>
