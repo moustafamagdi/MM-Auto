@@ -88,6 +88,28 @@ public class InternalPairingServiceTest {
             assertNull(shadowOf((Application)c).getNextStartedActivity());
         }
     }
+    @Test public void pairingAdvertisementRealertsOnceWithoutReadingCodeOrOpeningActivity() {
+        try(Managed controller=new Managed()) {
+            InternalPairingService service=controller.get();service.onStartCommand(InternalPairingService.start(c,Releases.App.TUBE),0,1);
+            String ticket=c.getSharedPreferences("pair_ticket",0).getString("session","");
+            service.pairingReady("stale");assertEquals(c.getString(R.string.pair_notification_wait),notification().extras.getString(Notification.EXTRA_TEXT));
+            service.pairingReady(ticket);
+            Notification ready=notification();assertEquals(c.getString(R.string.pair_notification_ready),ready.extras.getString(Notification.EXTRA_TEXT));
+            assertEquals(0,ready.flags & Notification.FLAG_ONLY_ALERT_ONCE);
+            service.pairingReady(ticket);assertSame(ready,notification());
+            assertEquals(1,ready.actions[0].getRemoteInputs().length);
+            assertNull(shadowOf((Application)c).getNextStartedActivity());assertFalse(InternalInstallOperation.busy());
+        }
+    }
+    @Test public void discoveryWindowEndsBeforeShortServiceDeadlineButReplyRemainsAvailable() {
+        try(Managed controller=new Managed()) {
+            controller.get().onStartCommand(InternalPairingService.start(c,Releases.App.TUBE),0,1);
+            shadowOf(android.os.Looper.getMainLooper()).idleFor(Duration.ofMillis(InternalPairingService.DISCOVERY_MS));
+            assertNotNull(notification().actions[0].getRemoteInputs());
+            assertTrue(c.getSharedPreferences("pair_ticket",0).getLong("expires",0)>System.currentTimeMillis());
+            assertFalse(InternalInstallOperation.busy());
+        }
+    }
     @Test public void developerSettingsRequestsWirelessHighlightWithoutClearingTask() {
         Intent intent=WirelessDebuggingSettings.developerOptions();
         assertEquals(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,intent.getAction());

@@ -21,6 +21,10 @@ public final class InternalPairingService extends Service {
     private Releases.App target;
     private String session;
     private boolean pairing, finished, waiting;
+    private io.github.muntashirakon.adb.android.AdbMdns discovery;
+    private boolean readyAlerted;
+    static final long DISCOVERY_MS = 120_000;
+
     static final long WAIT_MS = 10 * 60_000;
     private PendingIntent replyIntent, stopIntent;
     private static volatile Releases.App waitingApp;
@@ -54,14 +58,14 @@ public final class InternalPairingService extends Service {
             try { requested = InternalAdbPolicy.target(intent.getStringExtra("app")); }
             catch (IllegalArgumentException invalid) { stopSelf(); return START_NOT_STICKY; }
             if (!requested.name().equals(InternalInstallOperation.prefs(this).getString("app", ""))) { stopSelf(); return START_NOT_STICKY; }
-            cancelActions();
-            target = requested; waitingApp = requested; session = UUID.randomUUID().toString(); finished = false;
+            stopDiscovery(); cancelActions();
+            target = requested; waitingApp = requested; session = UUID.randomUUID().toString(); finished = false; readyAlerted = false;
             channel(this);
             waiting = true;
             getSharedPreferences("pair_ticket",0).edit().putString("session",session).putString("app",target.name())
                     .putLong("expires",System.currentTimeMillis()+WAIT_MS).commit();
-            notifyStatus(R.string.pair_notification_wait, true);
-            stopSelf();
+            promote(notification(R.string.pair_notification_wait, true));
+            watchForPairing();
             return START_NOT_STICKY;
         }
         // A waiting notification may restart this service, but an accepted code is consumed once.
@@ -77,6 +81,7 @@ public final class InternalPairingService extends Service {
         // No replay after acceptance, expiry or a different selected app.
         if (!validSession(intent)) { if (!pairing) stopSelf(); return START_NOT_STICKY; }
         if (STOP.equals(intent.getAction())) {
+            stopDiscovery();
             getSharedPreferences("pair_ticket",0).edit().clear().commit();
             if (pairing) InternalInstallOperation.cancel(this);
             finished = true; stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
@@ -84,6 +89,7 @@ public final class InternalPairingService extends Service {
             if (InternalInstallOperation.busy()) {
                 stopSelf(); return START_NOT_STICKY;
             }
+            stopDiscovery();
             Bundle results = RemoteInput.getResultsFromIntent(intent);
             CharSequence input = results == null ? null : results.getCharSequence(CODE);
             String code;
@@ -109,6 +115,32 @@ public final class InternalPairingService extends Service {
         }
         return START_NOT_STICKY;
     }
+    private void watchForPairing() {
+        final String ticket = session;
+        main.postDelayed(stopWatching, DISCOVERY_MS);
+        try {
+            discovery = new io.github.muntashirakon.adb.android.AdbMdns(this,
+                    io.github.muntashirakon.adb.android.AdbMdns.SERVICE_TYPE_TLS_PAIRING,
+                    (host,port)->{if(host!=null&&port>0&&port<=65535)main.post(()->pairingReady(ticket));});
+            discovery.start();
+        } catch(RuntimeException unavailable) { stopWatching.run(); }
+    }
+    void pairingReady(String ticket) {
+        if (!waiting || pairing || finished || readyAlerted || session==null || !session.equals(ticket)
+                || !session.equals(getSharedPreferences("pair_ticket",0).getString("session",""))
+                || getSharedPreferences("pair_ticket",0).getLong("expires",0)<=System.currentTimeMillis()) return;
+        readyAlerted = true;
+        notifyStatus(R.string.pair_notification_ready, true);
+        stopWatching.run();
+    }
+    private void stopDiscovery() {
+        main.removeCallbacks(stopWatching);
+        if(discovery!=null){try{discovery.stop();}catch(RuntimeException ignored){}discovery=null;}
+    }
+    private final Runnable stopWatching = () -> {
+        stopDiscovery();
+        if(waiting&&!pairing){stopForeground(STOP_FOREGROUND_DETACH);stopSelf();}
+    };
     private boolean validSession(Intent intent) {
         return !finished && (pairing || getSharedPreferences("pair_ticket",0).getLong("expires",0)>System.currentTimeMillis()) && session != null && session.equals(intent.getStringExtra("session"))
                 && target != null && target.name().equals(InternalInstallOperation.prefs(this).getString("app", ""));
@@ -153,7 +185,7 @@ public final class InternalPairingService extends Service {
         Notification.Builder builder = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_auto).setContentTitle(title).setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
-                .setContentIntent(open).setOnlyAlertOnce(true).setShowWhen(false)
+                .setContentIntent(open).setOnlyAlertOnce(message != R.string.pair_notification_ready).setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PRIVATE)
                 .setOngoing(!finished).setAutoCancel(finished).setTimeoutAfter(waiting ? WAIT_MS : WINDOW_MS)
                 .setCategory(Notification.CATEGORY_SERVICE);
@@ -183,6 +215,7 @@ public final class InternalPairingService extends Service {
     @Override public void onTimeout(int startId) { expire.run(); }
     @Override public void onTimeout(int startId, int fgsType) { expire.run(); }
     @Override public void onDestroy() {
+        stopDiscovery();
         if (pairing && !finished) InternalInstallOperation.cancel(this);
         main.removeCallbacksAndMessages(null); if (!waiting) cancelActions(); waitingApp = null;
         super.onDestroy();

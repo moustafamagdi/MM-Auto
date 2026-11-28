@@ -32,4 +32,5 @@
     <string name="internal_source_unconfirmed">أندرويد أكمل التثبيت، لكن مصدر التثبيت المطلوب ما اتأكدش. جرّب التطبيق على شاشة العربية وابعت التشخيص لو محتاج مساعدة.</string>
 <string name="internal_pair_required">أندرويد رفض الاقتران المحفوظ. اعمل اقتران من جديد للمتابعة.</string>
 <string name="internal_connection_unavailable">تعذر التأكد من الاتصال اللاسلكي. راجع الواي فاي وتصحيح الأخطاء اللاسلكي. لو حذفت MM Auto من الأجهزة المقترنة، اختار اقتران من جديد.</string>
+<string name="pair_notification_ready">الاقتران جاهز. اضغط إدخال الكود واكتب الكود الظاهر في إعدادات الموبايل.</string>
 </resources>

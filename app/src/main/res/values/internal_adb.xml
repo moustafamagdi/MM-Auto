@@ -32,4 +32,5 @@
     <string name="internal_source_unconfirmed">Android completed the installation, but the requested installation source was not confirmed. Check the app on your car screen and share diagnostics if needed.</string>
 <string name="internal_pair_required">Android rejected the saved pairing. Pair this phone again to continue.</string>
 <string name="internal_connection_unavailable">The wireless connection could not be verified. Check Wi-Fi and Wireless debugging. If you removed MM Auto from paired devices, choose Pair again.</string>
+<string name="pair_notification_ready">Pairing is ready. Tap Enter code and type the code shown in phone settings.</string>
 </resources>

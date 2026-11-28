@@ -191,7 +191,7 @@ public final class InternalInstallActivity extends Activity {
                         catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
                     }).setNegativeButton(R.string.cancel, null).show(); return;
         }
-        try { startService(InternalPairingService.start(this, app)); openSettings(); }
+        try { startForegroundService(InternalPairingService.start(this, app)); openSettings(); }
         catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
