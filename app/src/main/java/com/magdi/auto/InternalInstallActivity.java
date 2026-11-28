@@ -20,6 +20,8 @@ public final class InternalInstallActivity extends Activity {
     private final Handler ui = new Handler(android.os.Looper.getMainLooper());
     private String shown = "";
     private boolean visible;
+    private boolean manualPairing;
+    private static final int NOTIFICATION_PERMISSION = 714;
     private final Runnable refresh = new Runnable() {
         @Override public void run() {
             if (!visible || isDestroyed()) return;
@@ -44,6 +46,9 @@ public final class InternalInstallActivity extends Activity {
             app = InternalInstallOperation.busy() ? InternalInstallOperation.activeApp()
                     : InternalAdbPolicy.target(getIntent().getStringExtra("app"));
         } catch (IllegalArgumentException invalid) { finish(); return; }
+        if (InternalPairingService.waitingApp() != null && InternalPairingService.waitingApp() != app)
+            stopService(new Intent(this, InternalPairingService.class));
+        manualPairing = saved != null && saved.getBoolean("manual_pairing", false);
         InternalInstallOperation.select(this, app);
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);
         scroll.setBackgroundColor(UiStyle.dark(this) ? 0xff0b1220 : 0xfff3f6fc);
@@ -60,6 +65,9 @@ public final class InternalInstallActivity extends Activity {
     }
     @Override protected void onResume() { super.onResume(); visible = true; ui.post(refresh); }
     @Override protected void onPause() { visible = false; ui.removeCallbacks(refresh); super.onPause(); }
+    @Override protected void onSaveInstanceState(Bundle out) {
+        out.putBoolean("manual_pairing", manualPairing); super.onSaveInstanceState(out);
+    }
     @Override public void onBackPressed() {
         if (InternalInstallOperation.busy()) Toast.makeText(this, R.string.internal_wait, Toast.LENGTH_SHORT).show();
         else super.onBackPressed();
@@ -86,7 +94,9 @@ public final class InternalInstallActivity extends Activity {
         }
         if (state.equals("failed") || state.equals("interrupted")) {
             text(getString(state.equals("interrupted") ? R.string.internal_interrupted : R.string.internal_failed), 17);
-            button(R.string.internal_retry, true, () -> change("setup")); details(); button(R.string.close, false, this::finish); return;
+            button(R.string.internal_retry, true, () -> change(
+                    InternalInstallOperation.prefs(this).getString("detail", "").startsWith("pairing:")
+                            ? "pair_again" : "setup")); details(); button(R.string.close, false, this::finish); return;
         }
         if (state.equals("ready")) {
             boolean installed = Releases.installed(getPackageManager(), app) != null;
@@ -109,7 +119,12 @@ public final class InternalInstallActivity extends Activity {
             button(R.string.internal_pair_again, false, () -> change("pair_again"));
         } else {
             text(getString(R.string.internal_intro), 17);
-            text(getString(R.string.internal_pair_help), 16); settings();
+            text(getString(R.string.pair_notification_help), 16);
+            button(R.string.internal_settings, true, this::prepareNotification);
+            button(manualPairing ? R.string.pair_manual_hide : R.string.pair_manual_show, false,
+                    () -> { manualPairing = !manualPairing; render(); });
+            if (manualPairing) {
+            text(getString(R.string.internal_pair_help), 16);
             EditText port = input(R.string.internal_pair_port, false), code = input(R.string.internal_pair_code, true);
             button(R.string.internal_pair, true, () -> {
                 int number;
@@ -117,9 +132,11 @@ public final class InternalInstallActivity extends Activity {
                 catch (IllegalArgumentException invalid) { port.setError(getString(R.string.internal_invalid_port)); return; }
                 try {
                     String secret = InternalAdbPolicy.code(code.getText().toString().trim());
+                    stopService(new Intent(this, InternalPairingService.class));
                     code.setText(""); InternalInstallOperation.pair(this, app, number, secret); shown = "";
                 } catch (IllegalArgumentException invalid) { code.setError(getString(R.string.internal_invalid_code)); }
             });
+            }
         }
         text(getString(R.string.internal_restart_note), 14); button(R.string.close, false, this::finish);
         button(R.string.internal_licenses, false, () -> {
@@ -134,13 +151,39 @@ public final class InternalInstallActivity extends Activity {
         });
     }
     private void settings() {
-        button(R.string.internal_settings, false, () -> {
-            try { startActivity(new Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS")); }
-            catch (RuntimeException absent) {
-                try { startActivity(new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)); }
-                catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
-            }
-        });
+        button(R.string.internal_settings, false, this::openSettings);
+    }
+    private void openSettings() {
+        if (!WirelessDebuggingSettings.open(this)) Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show();
+    }
+    private void prepareNotification() {
+        if (InternalInstallOperation.busy()) return;
+        InternalPairingService.channel(this);
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+                && !getPreferences(0).getBoolean("notification_requested", false)) {
+            getPreferences(0).edit().putBoolean("notification_requested", true).apply();
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION); return;
+        }
+        android.app.NotificationManager manager = getSystemService(android.app.NotificationManager.class);
+        android.app.NotificationChannel channel = manager.getNotificationChannel(InternalPairingService.CHANNEL);
+        if (!manager.areNotificationsEnabled() || channel.getImportance() == android.app.NotificationManager.IMPORTANCE_NONE) {
+            new AlertDialog.Builder(this).setMessage(R.string.pair_notification_permission)
+                    .setPositiveButton(R.string.internal_settings, (d,w) -> {
+                        try { startActivity(new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName())
+                                .putExtra(Settings.EXTRA_CHANNEL_ID, InternalPairingService.CHANNEL)); }
+                        catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
+                    }).setNegativeButton(R.string.cancel, null).show(); return;
+        }
+        try { startForegroundService(InternalPairingService.start(this, app)); openSettings(); }
+        catch (RuntimeException unavailable) { Toast.makeText(this, R.string.open_failed, Toast.LENGTH_LONG).show(); }
+    }
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == NOTIFICATION_PERMISSION && results.length > 0
+                && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) prepareNotification();
+        else if (request == NOTIFICATION_PERMISSION) Toast.makeText(this, R.string.pair_notification_permission, Toast.LENGTH_LONG).show();
     }
     private void details() {
         button(R.string.problem_details, false, () -> new AlertDialog.Builder(this).setTitle(R.string.problem_details)

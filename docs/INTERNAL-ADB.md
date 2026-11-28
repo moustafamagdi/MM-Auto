@@ -1,4 +1,4 @@
-# Built-in installer preview: 0.2.26-preview (31)
+# Built-in installer preview: 0.2.27-preview (32)
 
 ## Evidence and scope
 
@@ -19,11 +19,14 @@ service or screen-capture functionality is included.
 
 Preview builds only: MM Tube / MM IPTV three-dot menu → Built-in installation.
 
-1. Connect the phone to Wi-Fi; enable Developer options and Wireless debugging.
-   Open Settings and MM Auto in split screen.
-2. Choose Android's Pair device with pairing code and keep its dialog open.
-   Enter the six-digit code in MM Auto. Leave the optional port blank for
-   automatic discovery; manual pairing port entry is also available.
+1. Connect the phone to Wi-Fi and enable Developer options. In MM Auto press
+   Open phone setup and allow notifications when requested. This starts a
+   temporary pairing notification before opening Android Settings.
+2. Enable Wireless debugging, choose Pair device with pairing code, and keep
+   its dialog open. Pull down notifications and use Enter code on MM Auto's
+   notification. Do not switch back to the app to type the code. A successful
+   result notification returns to the selected app's connection step.
+   Split-screen manual code/port entry remains an expandable fallback.
 3. Return to the main Wireless debugging page and check the connection. If
    discovery fails, enter that page's connection port, not the pairing port.
 4. Explicitly press Install. Existing apps use their same verified version,
@@ -38,6 +41,22 @@ another confirmation, as explained on screen. No silent pairing is promised.
 Classic remains the normal Install button. Shizuku and MM Auto self-updates
 retain their existing paths. No automatic downgrade, uninstall, data deletion,
 root selection or persistent daemon is added.
+
+## Pairing notification and settings targeting
+
+The inline reply uses an explicit, session-scoped mutable service PendingIntent,
+not an Activity. The non-exported foreground service lasts at most 150 seconds
+per user interaction (shortService on Android 14+), and never starts installation.
+Expiry, cancellation, changed target and process death invalidate reply actions.
+Codes are removed from incoming RemoteInput data and never saved or logged.
+Blocked notifications lead to notification settings instead of a hidden prompt.
+
+Settings first uses an OEM direct wireless-debugging action where available;
+otherwise it opens Developer options with the toggle_adb_wireless preference
+highlight hint. Settings controls scrolling/highlighting and OEMs can ignore it.
+The app does not use accessibility automation or toggle debugging itself.
+The interaction was compared with upstream Shizuku's AdbPairingService and
+AdbPairingTutorialActivity, and Android's RemoteInput/shortService documentation.
 
 ## Correctness and diagnostics
 
@@ -100,8 +119,15 @@ Android reported a null installer and the app correctly showed source not
 confirmed. No real phone pairing, OEM source retention, car launcher visibility
 or playback validation is claimed.
 
-Final validation: 126 app tests + 4 library tests, lint (0 errors), release build;
+0.2.26 validation: 126 app tests + 4 library tests, lint (0 errors), release build;
 20 dashboard tests and production build passed. All bundled native ELF LOAD
 segments and APK ZIP entries meet 16 KiB alignment. A repeated emulator reinstall
 preserved a dedicated private app-data fixture. Pairing and car limits above
 remain unchanged.
+
+0.2.27 validation: 130 app tests + 4 library tests, lint (0 errors) and release
+build. New tests cover service-only reply routing, invalid-input handling,
+credential non-persistence, expiry, stale replies after service death, target
+validation, and Settings highlight hints. Arabic/English and light/dark screen
+tests cover the collapsed manual fallback. Actual Samsung pairing and OEM
+scroll/highlight behavior require phone validation; no new car validation.

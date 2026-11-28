@@ -7,8 +7,8 @@ android {
         applicationId 'com.magdi.auto'
         minSdk 30
         targetSdk 36
-        versionCode 31
-        versionName '0.2.26-preview'
+        versionCode 32
+        versionName '0.2.27-preview'
     }
     buildTypes {
         debug { applicationIdSuffix '.debug' }

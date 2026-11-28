@@ -26,6 +26,9 @@ public class InternalInstallScreenTest {
                 assertEquals(theme.equals("dark"),UiStyle.dark(activity));
                 assertEquals(language,activity.getResources().getConfiguration().getLocales().get(0).getLanguage());
                 List<EditText> inputs=new ArrayList<>(); collect(activity.findViewById(android.R.id.content),inputs);
+                assertEquals(0,inputs.size());
+                clickManual(activity.findViewById(android.R.id.content), activity.getString(R.string.pair_manual_show));
+                collect(activity.findViewById(android.R.id.content),inputs);
                 assertEquals(2,inputs.size());
                 for(EditText field:inputs)assertFalse(field.isSaveEnabled());
                 assertFalse(InternalInstallOperation.busy());
@@ -40,6 +43,11 @@ public class InternalInstallScreenTest {
             assertEquals("interrupted",InternalInstallOperation.state(c));
             assertFalse(InternalInstallOperation.busy());
         }
+    }
+    private static boolean clickManual(View view,String label) {
+        if(view instanceof android.widget.Button && label.contentEquals(((android.widget.Button)view).getText())) { view.performClick(); return true; }
+        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)if(clickManual(((ViewGroup)view).getChildAt(i),label))return true;
+        return false;
     }
     private static void collect(View view,List<EditText> inputs) {
         if(view instanceof EditText)inputs.add((EditText)view);
